@@ -1,0 +1,22 @@
+The CDM defines a number of key classes:
+
+1. Execution A class to specify an execution, which consists essentially in the economic terms which are agreed between the parties, alongside with the qualification of the type of execution.
+Event A class to specify the lifecycle event.
+2. TransferPrimitive A class to specify the transfer of assets between parties, those assets being either cash, securities or physical assets.
+3. AllocationPrimitive A class to specify the primitive event to represent a split/allocation of a trade.
+4. Affirmation A class to specify a trade affirmation.
+5. Confirmation A class to specify a trade confirmation.
+
+
+CDM: Different types of primitives
+
+1.  Allocation
+2.  ContractFormation
+3.  Execution
+4.  Exercise
+5.  Inception
+6.  Observation
+7.  QuantityChange
+8.  Reset
+9.  TermsChange
+10. Transfer
