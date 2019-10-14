@@ -39,6 +39,11 @@ public class ExecutionEventValidator {
                 .stream()
                 .filter(r -> r.getRole() == PartyRoleEnum.COUNTERPARTY)
                 .collect(MoreCollectors.onlyElement());
+
+        PartyRole clientRole = execution.getPartyRole()
+                .stream()
+                .filter(r -> r.getRole() == PartyRoleEnum.CLIENT)
+                .collect(MoreCollectors.onlyElement());
         return this;
     }
 
