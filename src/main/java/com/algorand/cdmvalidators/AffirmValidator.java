@@ -1,4 +1,9 @@
 package com.algorand.cdmvalidators;
 
-public class AffirmValidator {
+import org.isda.cdm.Event;
+
+public class AffirmValidator extends BaseEventValidator {
+    public AffirmValidator(Event event) {
+        super(event);
+    }
 }

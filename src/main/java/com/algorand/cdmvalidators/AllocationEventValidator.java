@@ -1,5 +1,10 @@
 package com.algorand.cdmvalidators;
 
-public class AllocationEventValidator {
+import org.isda.cdm.Event;
 
+public class AllocationEventValidator extends BaseEventValidator{
+
+    public AllocationEventValidator(Event event) {
+        super(event);
+    }
 }

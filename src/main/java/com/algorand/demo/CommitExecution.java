@@ -1,33 +1,23 @@
 
 package com.algorand.demo;
 import com.algorand.cdmvalidators.ExecutionEventValidator;
-import com.algorand.exceptions.ExecutionException;
+import com.algorand.exceptions.ValidationException;
 import com.algorand.utils.*;
 import com.algorand.algosdk.algod.client.model.Transaction;
 
-import org.isda.cdm.validation.ExecutionValidator;
-import org.jongo.Jongo;
 import com.mongodb.DB;
 
-import com.algorand.algosdk.algod.client.model.Transaction;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.regnosys.rosetta.common.serialisation.RosettaObjectMapper;
 
 import java.io.IOException;
 import java.util.*;
 
-import com.google.inject.Inject;
-import com.google.inject.Guice;
-import com.google.inject.Injector;
-
 import org.isda.cdm.*;
-import org.isda.cdm.PartyRoleEnum.*;
 
 import java.util.stream.Collectors;
 import com.google.common.collect.MoreCollectors;
 
-import java.math.BigInteger;
 import java.util.stream.Stream;
 
 public  class CommitExecution {
@@ -92,16 +82,15 @@ public  class CommitExecution {
                     .map(u -> executingUser.sendEventTransaction(u, event, "execution"))
                     .collect(Collectors.toList());
         }
-        catch (ExecutionException ex)
+        catch (ValidationException ex)
         {
-            System.out.println("Execution event Exception: "+ ex.getMessage());
+            System.out.println("Exception occurred for Event ID : "+ ex.getUnderlyingEvent().getMeta().getGlobalKey());
+            System.out.println("Exception Reason : "+ ex.getMessage());
         }
         catch (IOException ex)
         {
-            System.out.println("I/O Exception: "+ ex);
+            System.out.println("I/O Exception: "+ ex.getMessage());
         }
-
-
     }
 
 }
