@@ -2,8 +2,12 @@ package com.algorand.cdmvalidators;
 
 import com.algorand.exceptions.ValidationException;
 import com.google.common.collect.MoreCollectors;
+import com.rosetta.model.lib.records.Date;
+import com.rosetta.model.lib.records.DateImpl;
 import org.isda.cdm.*;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.function.Predicate;
@@ -29,23 +33,13 @@ public class ValidatedExecutionEvent extends BaseEventValidator {
 
     public Execution getExecution() throws ValidationException
     {
-        if(!validate(executionEventPredicate)) {
-            List<String> exceptions = getExceptions();
-            ValidationException ex = new ValidationException(exceptions, event);
-            clearExceptions();
-            throw ex;
-        }
+        validate(executionEventPredicate);
         return this.execution;
     }
 
     public Party getClient() throws ValidationException
     {
-        if(!validate(executionEventPredicate)) {
-            List<String> exceptions = getExceptions();
-            ValidationException ex = new ValidationException(exceptions, event);
-            clearExceptions();
-            throw ex;
-        }
+        validate(executionEventPredicate);
         String globalReference = getPartyRoleForClient().getPartyReference().getGlobalReference();
         return event.getParty().stream()
                 .filter(p -> p.getMeta().getGlobalKey().equals(globalReference))
@@ -54,12 +48,7 @@ public class ValidatedExecutionEvent extends BaseEventValidator {
 
     public Party getExecutingEntity() throws ValidationException
     {
-        if(!validate(executionEventPredicate)) {
-            List<String> exceptions = getExceptions();
-            ValidationException ex = new ValidationException(exceptions, event);
-            clearExceptions();
-            throw ex;
-        }
+        validate(executionEventPredicate);
         String globalReference = getPartyRoleForExecutingEntity().getPartyReference().getGlobalReference();
         return event.getParty().stream()
                 .filter(p -> p.getMeta().getGlobalKey().equals(globalReference))
@@ -68,12 +57,7 @@ public class ValidatedExecutionEvent extends BaseEventValidator {
 
     public Party getCounterparty() throws ValidationException
     {
-        if(!validate(executionEventPredicate)) {
-            List<String> exceptions = getExceptions();
-            ValidationException ex = new ValidationException(exceptions, event);
-            clearExceptions();
-            throw ex;
-        }
+        validate(executionEventPredicate);
         String globalReference = getPartyRoleForCounterparty().getPartyReference().getGlobalReference();
         return event.getParty().stream()
                 .filter(p -> p.getMeta().getGlobalKey().equals(globalReference))
@@ -83,38 +67,43 @@ public class ValidatedExecutionEvent extends BaseEventValidator {
 
     public PartyRole getSideForClient() throws ValidationException
     {
-        if(!validate(executionEventPredicate)) {
-            List<String> exceptions = getExceptions();
-            ValidationException ex = new ValidationException(exceptions, event);
-            clearExceptions();
-            throw ex;
-        }
+        validate(executionEventPredicate);
         String globalReference = getPartyRoleForClient().getPartyReference().getGlobalReference();
         return findSideByPartyGlobalReference(globalReference);
     }
 
     public PartyRole getSideForExecutingEntity() throws ValidationException
     {
-        if(!validate(executionEventPredicate)) {
-            List<String> exceptions = getExceptions();
-            ValidationException ex = new ValidationException(exceptions, event);
-            clearExceptions();
-            throw ex;
-        }
+        validate(executionEventPredicate);
         String globalReference = getPartyRoleForExecutingEntity().getPartyReference().getGlobalReference();
         return findSideByPartyGlobalReference(globalReference);
     }
 
     public PartyRole getSideForCounterparty() throws ValidationException
     {
-        if(!validate(executionEventPredicate)) {
-            List<String> exceptions = getExceptions();
-            ValidationException ex = new ValidationException(exceptions, event);
-            clearExceptions();
-            throw ex;
-        }
+        validate(executionEventPredicate);
         String globalReference = getPartyRoleForCounterparty().getPartyReference().getGlobalReference();
         return findSideByPartyGlobalReference(globalReference);
+    }
+
+    public BigDecimal getAccruedInterest() throws ValidationException {
+        validate(executionEventPredicate);
+        return execution.getPrice().getAccruedInterest();
+    }
+
+    public ActualPrice getGrossPrice() throws ValidationException {
+        validate(executionEventPredicate);
+        return execution.getPrice().getGrossPrice();
+    }
+
+    public ActualPrice getNetPrice() throws ValidationException {
+        validate(executionEventPredicate);
+        return execution.getPrice().getNetPrice();
+    }
+
+    public Product getProduct() throws ValidationException {
+        validate(executionEventPredicate);
+        return execution.getProduct();
     }
 
     // Validations available publicly.
@@ -143,11 +132,14 @@ public class ValidatedExecutionEvent extends BaseEventValidator {
 
     public ValidatedExecutionEvent validateEconomics()
     {
+        executionEventPredicate = executionEventPredicate
+                .and(this::validateTradeDateNotInFuture);
         return this;
     }
 
-    //----------------------------------- Validation Rules Implementation---------------------------
 
+
+    //----------------------------------- Validation Rules Implementation---------------------------
     private boolean validateExactlyThreeParties(Event event)
     {
         if(event.getParty().size() != 3)
@@ -211,6 +203,12 @@ public class ValidatedExecutionEvent extends BaseEventValidator {
 
         addException("Executing Entity and Counterparty should be opposite sides, but they are on same side");
         return false;
+    }
+    private boolean validateTradeDateNotInFuture(Event event) {
+        Date tradeDate = execution.getTradeDate().getValue();
+        //Date today = DateImpl.of(LocalDate.now().)
+        //if(tradeDate > Date)
+        return true;
     }
     //-----------------------------------End  Validation Rules Implementation-------------------------
 

@@ -7,4 +7,8 @@ public class ValidatedAllocationEvent extends BaseEventValidator{
     public ValidatedAllocationEvent(Event event) {
         super(event);
     }
+
+    public ValidatedAllocationEvent validateLineage() {
+        return this;
+    }
 }

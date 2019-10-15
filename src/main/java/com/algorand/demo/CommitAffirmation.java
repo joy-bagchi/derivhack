@@ -1,4 +1,3 @@
-
 package com.algorand.demo;
 import com.algorand.utils.*;
 import com.algorand.algosdk.algod.client.model.Transaction;
@@ -38,10 +37,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.math.BigInteger;
 import com.regnosys.rosetta.common.serialisation.RosettaObjectMapper;
 
-
 public  class CommitAffirmation {
-
-
 
     public static void main(String[] args){
 
@@ -61,12 +57,12 @@ public  class CommitAffirmation {
             e.printStackTrace();
         }
 
-
         List<Trade> allocatedTrades = allocationEvent
                 .getPrimitive()
                 .getAllocation().get(0)
                 .getAfter()
                 .getAllocatedTrade();
+
         //Keep track of the trade index
         int tradeIndex = 0;
 
