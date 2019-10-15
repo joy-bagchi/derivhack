@@ -1,6 +1,6 @@
 
 package com.algorand.demo;
-import com.algorand.cdmvalidators.ExecutionEventValidator;
+import com.algorand.cdmvalidators.ValidatedExecutionEvent;
 import com.algorand.exceptions.ValidationException;
 import com.algorand.utils.*;
 import com.algorand.algosdk.algod.client.model.Transaction;
@@ -47,10 +47,11 @@ public  class CommitExecution {
                     .collect(Collectors.toList());
 
             //Get the execution
-            Execution execution = new ExecutionEventValidator(event)
+            ValidatedExecutionEvent validatedExecutionEvent =  new ValidatedExecutionEvent(event)
                     .validateParties()
-                    .validateEconomics()
-                    .getExecution();
+                    .validateEconomics();
+
+            Execution execution  = validatedExecutionEvent.getExecution();
 
             String executingPartyReference = execution.getPartyRole()
                     .stream()
@@ -59,9 +60,7 @@ public  class CommitExecution {
                     .collect(MoreCollectors.onlyElement());
 
             // Get the executing party
-            Party executingParty = event.getParty().stream()
-                    .filter(p -> executingPartyReference.equals(p.getMeta().getGlobalKey()))
-                    .collect(MoreCollectors.onlyElement());
+            Party executingParty = validatedExecutionEvent.getExecutingEntity();
 
             // Get all other parties
             List<Party> otherParties = event.getParty().stream()
