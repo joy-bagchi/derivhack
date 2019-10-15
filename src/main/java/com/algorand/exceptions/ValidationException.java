@@ -25,4 +25,9 @@ public class ValidationException extends Exception{
     {
         return underlyingEvent;
     }
+
+    public List<String> getExceptionCollection()
+    {
+        return exceptionCollection;
+    }
 }

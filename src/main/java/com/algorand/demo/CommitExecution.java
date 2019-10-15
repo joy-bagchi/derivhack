@@ -85,7 +85,8 @@ public  class CommitExecution {
         catch (ValidationException ex)
         {
             System.out.println("Exception occurred for Event ID : "+ ex.getUnderlyingEvent().getMeta().getGlobalKey());
-            System.out.println("Exception Reason : "+ ex.getMessage());
+            System.out.println("Exception Reasons : ");
+            ex.getExceptionCollection().stream().forEach(System.out::println);
         }
         catch (IOException ex)
         {
