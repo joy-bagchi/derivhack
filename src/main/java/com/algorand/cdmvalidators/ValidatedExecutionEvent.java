@@ -206,8 +206,11 @@ public class ValidatedExecutionEvent extends BaseEventValidator {
     }
     private boolean validateTradeDateNotInFuture(Event event) {
         Date tradeDate = execution.getTradeDate().getValue();
-        //Date today = DateImpl.of(LocalDate.now().)
-        //if(tradeDate > Date)
+        LocalDate today = LocalDate.now();
+        if(tradeDate.toLocalDate().isAfter(today)) {
+            addException("Trade date cannot be in the future ");
+            return false;
+        }
         return true;
     }
     //-----------------------------------End  Validation Rules Implementation-------------------------
