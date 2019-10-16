@@ -13,12 +13,13 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.MoreCollectors;
 import com.mongodb.DB;
 import com.regnosys.rosetta.common.serialisation.RosettaObjectMapper;
+import com.rosetta.model.lib.records.Date;
+import com.rosetta.model.lib.records.DateImpl;
 import org.isda.cdm.*;
-import org.isda.cdm.metafields.ReferenceWithMetaEvent;
-import org.isda.cdm.metafields.ReferenceWithMetaExecution;
-import org.isda.cdm.metafields.ReferenceWithMetaParty;
+import org.isda.cdm.metafields.*;
 
 import java.io.IOException;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -64,6 +65,10 @@ public class CommitSettlementEvent {
                     .collect(Collectors.toList());
 
             settlementEventBuilder.addParty(parties);
+            LocalDate today = LocalDate.now();
+            settlementEventBuilder.setEventDate(DateImpl.of(today.getYear(),
+                    today.getMonth().getValue(),
+                    today.getDayOfMonth()));
 
             ValidatedAllocationEvent validatedEvent = new ValidatedAllocationEvent(allocationEvent)
                     .validateEconomics()
@@ -99,14 +104,14 @@ public class CommitSettlementEvent {
             });
             Lineage allocationLineage = Lineage.builder()
                     .addEventReference(ReferenceWithMetaEvent.builder()
-                            .setGlobalReference(allocationEvent.getEventIdentifier().get(0)
-                                    .getIssuerReference()
-                                    .getGlobalReference())
+                            .setGlobalReference(allocationEvent.getMeta().getGlobalKey())
                             .build())
                     .addExecutionReference(executionReferences)
                     .build();
             settlementEventBuilder.setLineage(allocationLineage);
-
+            settlementEventBuilder.setMeta(MetaFields.builder()
+                    .setGlobalKey("aaa0c8f2-2288-4184-be5c-fda6a4075402")
+                    .build());
         }
         catch (ValidationException e) {
             System.out.println("Validation failed with ");
@@ -139,6 +144,8 @@ public class CommitSettlementEvent {
                 securityTrasferor = temp;
         }
 
+
+
         TransferPrimitive tp = TransferPrimitive.builder()
                 .setStatus(TransferStatusEnum.SETTLED)
                 .setSettlementType(TransferSettlementEnum.DELIVERY_VERSUS_PAYMENT)
@@ -158,6 +165,14 @@ public class CommitSettlementEvent {
                                 .setPayerPartyReference(securityTrasferee)
                                 .setReceiverPartyReference(securityTrasferor)
                                 .build())
+                        .build())
+                .setSettlementDate(AdjustableOrAdjustedOrRelativeDate.builder()
+                        .setUnadjustedDate(trade
+                                .getExecution()
+                                .getSettlementTerms()
+                                .getSettlementDate()
+                                .getAdjustableDate()
+                                .getUnadjustedDate())
                         .build())
                 .build();
         return tp;

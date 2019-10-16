@@ -88,10 +88,9 @@ public class ConfirmImpl {
                 .addAssignedIdentifierBuilder(AssignedIdentifier.builder()
                         .setIdentifier(FieldWithMetaString.builder().setValue(id).build())
                         .setVersion(version))
-                .setIssuerReferenceRef(party)
-                //.setIssuerReference(ReferenceWithMetaParty.builder()
-                //        .setGlobalReference(party.getMeta().getGlobalKey())
-                //        .build())
+                .setIssuerReference(ReferenceWithMetaParty.builder()
+                        .setGlobalReference(party.getMeta().getGlobalKey())
+                        .build())
                 .build();
     }
 }
