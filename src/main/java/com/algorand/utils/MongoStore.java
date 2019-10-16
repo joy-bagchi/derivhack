@@ -48,10 +48,12 @@ public class MongoStore extends CDMLocalStore
     @Override
     public void addEventToStore(Event event) throws JsonProcessingException
     {
+        String globalKey = MongoStore.getGlobalKey(event);
         Document document = new Document(
-                "globalKey", MongoStore.getGlobalKey(event))
+                "globalKey", globalKey)
                 .append("eventJson", this.rosettaMapper.writeValueAsString(event));
         this.cdmGlobalKeyToEventCollection.insertOne(document);
+        System.out.println("added event to mongo: globalKey=" + globalKey);
     }
 
     @Override
@@ -88,38 +90,39 @@ public class MongoStore extends CDMLocalStore
     }
 
     @Override
-    public void addAlgorandTransactionToStore(String globalKey, String algorandTransactionId, String algorandSenderId, String algorandReceiverId)
+    public void addAlgorandTransactionToStore(String globalKey, Transaction transaction, User sender, User receiver, String stage)
     {
+        String transactionId = transaction.getTx();
         Document document = new Document(
                 "cdmGlobalKey", globalKey)
-                .append("algorandTransactionId", algorandTransactionId)
-                .append("algorandSenderId", algorandSenderId)
-                .append("algorandReceiverId", algorandReceiverId);
+                .append("stage", stage)
+                .append("algorandTransactionId", transactionId)
+                .append("senderName", sender.name)
+                .append("receiverName", receiver.name)
+                .append("algorandSenderId", sender.algorandID)
+                .append("algorandReceiverId", receiver.algorandID);
         this.cdmGlobalKeyToAlgorandTransactionCollection.insertOne(document);
+        System.out.println("added algorand transaction to mongo: globalKey=" + globalKey +", transactionId=" +
+                transactionId + ", senderName=" + sender.name + ", receiverName=" + receiver.name + ", senderId=" +
+                sender.algorandID + ", receiverId=" + receiver.algorandID);
     }
 
     @Override
-    public void addAlgorandTransactionToStore(String globalKey, Transaction transaction, User sender, User receiver)
-    {
-        this.addAlgorandTransactionToStore(globalKey, transaction.getTx(), sender.algorandID, receiver.algorandID);
-    }
-
-    @Override
-    public void addAlgorandTransactionsToStore(String globalKey, List<Transaction> transactions, List<User> senders, List<User> receivers)
+    public void addAlgorandTransactionsToStore(String globalKey, List<Transaction> transactions, List<User> senders, List<User> receivers, String stage)
     {
         for(int transactionId = 0; transactionId < transactions.size(); transactionId++)
         {
             Transaction transaction = transactions.get(0);
             User sender = senders.get(0);
             User receiver = receivers.get(0);
-            this.addAlgorandTransactionToStore(globalKey, transaction, sender, receiver);
+            this.addAlgorandTransactionToStore(globalKey, transaction, sender, receiver, stage);
         }
     }
 
     @Override
-    public void addAlgorandTransactionsToStore(String globalKey, List<Transaction> transactions, User sender, List<User> receivers)
+    public void addAlgorandTransactionsToStore(String globalKey, List<Transaction> transactions, User sender, List<User> receivers, String stage)
     {
-        this.addAlgorandTransactionsToStore(globalKey, transactions, Collections.nCopies(receivers.size(), sender), receivers);
+        this.addAlgorandTransactionsToStore(globalKey, transactions, Collections.nCopies(receivers.size(), sender), receivers, stage);
     }
 
 }

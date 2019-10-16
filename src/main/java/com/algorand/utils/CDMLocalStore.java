@@ -10,10 +10,9 @@ public abstract class CDMLocalStore
 {
     public abstract void addEventToStore(Event event) throws JsonProcessingException;
     public abstract Event getEventFromStore(String globalKey);
-    public abstract void addAlgorandTransactionToStore(String globalKey, String algorandTransactionId, String algorandSenderId, String algorandReceiverId);
-    public abstract void addAlgorandTransactionToStore(String globalKey, Transaction transaction, User sender, User receiver);
-    public abstract void addAlgorandTransactionsToStore(String globalKey, List<Transaction> transactions, User sender, List<User> receivers);
-    public abstract void addAlgorandTransactionsToStore(String globalKey, List<Transaction> transactions, List<User> senders, List<User> receivers);
+    public abstract void addAlgorandTransactionToStore(String globalKey, Transaction transaction, User sender, User receiver, String stage);
+    public abstract void addAlgorandTransactionsToStore(String globalKey, List<Transaction> transactions, User sender, List<User> receivers, String stage);
+    public abstract void addAlgorandTransactionsToStore(String globalKey, List<Transaction> transactions, List<User> senders, List<User> receivers, String stage);
 
     public static String getGlobalKey(Event event)
     {
