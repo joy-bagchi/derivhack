@@ -37,6 +37,8 @@ public  class CommitExecution {
             ObjectMapper rosettaObjectMapper = RosettaObjectMapper.getDefaultRosettaObjectMapper();
             Event event = rosettaObjectMapper.readValue(fileContents, Event.class);
 
+            new MongoStore().addEventToStore(event);
+
             //Create Algorand Accounts for all parties
             // and persist accounts to filesystem/database
             List<Party> parties = event.getParty();
