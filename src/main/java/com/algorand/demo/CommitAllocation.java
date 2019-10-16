@@ -40,7 +40,6 @@ public  class CommitAllocation {
             Event event = rosettaObjectMapper
                     .readValue(fileContents, Event.class);
 
-
             //Add any new parties to the database, and commit the event to their own private databases
             List<Party> parties = event.getParty();
             User user;
@@ -51,6 +50,7 @@ public  class CommitAllocation {
 
 
             ValidatedAllocationEvent validatedEvent = new ValidatedAllocationEvent(event)
+                    .validateEconomics()
                     .validateLineage()
                     .validateParties()
                     .validateCDMDataRules();

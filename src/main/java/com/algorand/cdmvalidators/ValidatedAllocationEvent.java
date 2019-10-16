@@ -7,6 +7,7 @@ import org.isda.cdm.*;
 import org.isda.cdm.validation.datarule.AllocationOutcomeExecutionClosedDataRule;
 
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.function.Predicate;
 
@@ -27,6 +28,13 @@ public class ValidatedAllocationEvent extends BaseEventValidator{
                 .getAllocation().get(0)
                 .getAfter()
                 .getAllocatedTrade();
+    }
+
+    public ValidatedAllocationEvent validateEconomics()
+    {
+        allocationEventPredicate = allocationEventPredicate
+                .and(this::validateQuantitySumMatchOriginal);
+        return this;
     }
 
     public ValidatedAllocationEvent validateParties() {
@@ -50,6 +58,20 @@ public class ValidatedAllocationEvent extends BaseEventValidator{
     }
 
     //-------------------------Validation rules-------------------------------
+    private boolean validateQuantitySumMatchOriginal(Event event) {
+        List<Trade> allocatedTrades = event.getPrimitive().getAllocation().get(0).getAfter().getAllocatedTrade();
+        BigDecimal originalQuantity = event.getPrimitive()
+                .getAllocation().get(0)
+                .getBefore().getExecution()
+                .getQuantity().getAmount();
+        BigDecimal sumOfAllocatedQuantity = allocatedTrades.stream().map(
+                t -> t.getExecution().getQuantity().getAmount()).reduce(BigDecimal::add).get();
+        if(sumOfAllocatedQuantity.equals(originalQuantity)) return  true;
+        addException("Allocated quantity does not add up to original quantity (Allocated Sum: "
+                + sumOfAllocatedQuantity +
+                ", Original Quantity: " + originalQuantity + ").");
+        return false;
+    }
 
     private boolean validateTotalNumberOfParties(Event event) {
         int baseParties = 3; //Client, ExecutingBroker, Counterparty
