@@ -52,8 +52,9 @@ public  class CommitAllocation {
 
             ValidatedAllocationEvent validatedEvent = new ValidatedAllocationEvent(event)
                     .validateLineage()
+                    .validateParties()
                     .validateCDMDataRules();
-            
+
             //Get the allocated trades
             List<Trade> allocatedTrades  = validatedEvent.getAllocatedTrades();
 

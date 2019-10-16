@@ -49,6 +49,7 @@ public  class CommitExecution {
             //Get the execution
             ValidatedExecutionEvent validatedExecutionEvent =  new ValidatedExecutionEvent(event)
                     .validateParties()
+                    .validatePartyRoles()
                     .validateEconomics();
 
             Execution execution  = validatedExecutionEvent.getExecution();

@@ -18,11 +18,18 @@ public class ValidatedExecutionEvent extends BaseEventValidator {
     private Execution execution;
     private Predicate<Event> executionEventPredicate;
 
+    public ValidatedExecutionEvent(Event event, Execution execution)
+    {
+        super(event);
+        this.execution = execution;
+        executionEventPredicate = e -> {return true;};
+    }
 
     public ValidatedExecutionEvent(Event event) throws ValidationException {
         super(event);
         if(event.getPrimitive().getExecution() == null)
             throw new ValidationException("The provided event does not contain a primitive of type 'execution'", event);
+
         this.execution = event
                 .getPrimitive()
                 .getExecution().get(0)
@@ -106,8 +113,15 @@ public class ValidatedExecutionEvent extends BaseEventValidator {
         return execution.getProduct();
     }
 
-    // Validations available publicly.
     public ValidatedExecutionEvent validateParties()
+    {
+        executionEventPredicate = executionEventPredicate
+                .and(this::validateExactlyThreeParties);
+        return this;
+    }
+
+    // Validations available publicly.
+    public ValidatedExecutionEvent validatePartyRoles()
     {
         try {
             //Check:
@@ -116,7 +130,6 @@ public class ValidatedExecutionEvent extends BaseEventValidator {
             // 3. Client and Executing Entity are on the same side of the trade.
             // 4. Executing Entity and Counterparty are on the opposite sides of the trade
             executionEventPredicate = executionEventPredicate
-                    .and(this::validateExactlyThreeParties)
                     .and(this::validateExactlyOneClient)
                     .and(this::validateExactlyOneCounterparty)
                     .and(this::validateExactlyOneExecutingEntity)

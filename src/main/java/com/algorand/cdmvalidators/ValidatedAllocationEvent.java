@@ -29,6 +29,13 @@ public class ValidatedAllocationEvent extends BaseEventValidator{
                 .getAllocatedTrade();
     }
 
+    public ValidatedAllocationEvent validateParties() {
+        allocationEventPredicate = allocationEventPredicate
+                .and(this::validateTotalNumberOfParties)
+                .and(this::validatePartyRolesForAllocatedTrades);
+        return this;
+    }
+
     public ValidatedAllocationEvent validateLineage() {
         allocationEventPredicate = allocationEventPredicate
                 .and(this::validateLineageMatchesAfterOriginalTrade)
@@ -43,6 +50,37 @@ public class ValidatedAllocationEvent extends BaseEventValidator{
     }
 
     //-------------------------Validation rules-------------------------------
+
+    private boolean validateTotalNumberOfParties(Event event) {
+        int baseParties = 3; //Client, ExecutingBroker, Counterparty
+        int totalAllocatedTrades = event
+                .getPrimitive()
+                .getAllocation().get(0)
+                .getAfter()
+                .getAllocatedTrade().size();
+        //Total parties must match baseParties(3) +  totalAllocatedTrades (1 sub account per allocated trade)
+        if(event.getParty().size() == (baseParties+totalAllocatedTrades)) return true;
+        addException("Total parties expected: " + (baseParties+totalAllocatedTrades) + ", found: " + event.getParty().size());
+        return false;
+    }
+
+    private boolean validatePartyRolesForAllocatedTrades(Event event) {
+        List<Trade> allocatedTrades = event.getPrimitive().getAllocation().get(0).getAfter().getAllocatedTrade();
+        for(Trade trade : allocatedTrades){
+            try {
+                new ValidatedExecutionEvent(event, trade.getExecution())
+                        .validatePartyRoles()
+                        .getExecution();
+            }
+            catch (ValidationException e)
+            {
+                e.getExceptionCollection().stream().forEach(this::addException);
+                return false;
+            }
+        };
+        return true;
+    }
+
     private boolean validateLineageMatchesAfterOriginalTrade(Event evt)
     {
         //we can safely except to have a lineage since we have checked that the primitive is allocation
