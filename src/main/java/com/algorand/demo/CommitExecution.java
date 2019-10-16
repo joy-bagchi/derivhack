@@ -39,6 +39,7 @@ public  class CommitExecution {
 
             new MongoStore().addEventToStore(event);
 
+
             //Create Algorand Accounts for all parties
             // and persist accounts to filesystem/database
             List<Party> parties = event.getParty();

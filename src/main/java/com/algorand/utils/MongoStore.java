@@ -7,6 +7,8 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.regnosys.rosetta.common.serialisation.RosettaObjectMapper;
 import org.bson.Document;
+import org.isda.cdm.Affirmation;
+import org.isda.cdm.Confirmation;
 import org.isda.cdm.Event;
 
 import java.io.IOException;
@@ -15,7 +17,6 @@ import static com.mongodb.client.model.Filters.eq;
 
 public class MongoStore implements CDMLocalStore
 {
-
     private MongoDatabase database;
     private MongoCollection<Document> cdmGlobalKeyToEventCollection;
     private ObjectMapper rosettaMapper;
@@ -35,6 +36,57 @@ public class MongoStore implements CDMLocalStore
                 "globalKey", event.getEventIdentifier().get(0).getMeta().getGlobalKey())
                 .append("eventJson", this.rosettaMapper.writeValueAsString(event));
         this.cdmGlobalKeyToEventCollection.insertOne(document);
+    }
+
+    @Override
+    public void  addAffirmToStore(Affirmation affirm) throws JsonProcessingException
+    {
+        Document document = new Document(
+                "globalKey", affirm.getIdentifier().get(0).getMeta().getGlobalKey())
+                .append("affirmJson", this.rosettaMapper.writeValueAsString(affirm));
+        this.cdmGlobalKeyToEventCollection.insertOne(document);
+    }
+
+    @Override
+    public Affirmation getAffirmFromStore(String globalKey) {
+        Document document = null;
+        boolean duplicateFound = false;
+        for(Document curDocument : this.cdmGlobalKeyToEventCollection.find(eq("globalKey", globalKey)))
+        {
+            if(document == null)
+            {
+                document = curDocument;
+            } else
+            {
+                duplicateFound = true;
+            }
+        }
+        if(duplicateFound)
+        {
+            System.out.println("WARNING: more than one event for key " + globalKey);
+        }
+
+        String eventJson = (String) document.get("affirmJson");
+        Event event = null;
+        try
+        {
+            event = this.rosettaMapper.readValue(eventJson, Event.class);
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    @Override
+    public void addConfirmToStore(Confirmation event) throws JsonProcessingException {
+
+    }
+
+    @Override
+    public Confirmation getConfirmFromStore(String globalKey) {
+        return null;
     }
 
     @Override

@@ -30,6 +30,14 @@ public class ValidatedAllocationEvent extends BaseEventValidator{
                 .getAllocatedTrade();
     }
 
+    public Trade getOriginalTrades() throws ValidationException {
+        validate(allocationEventPredicate);
+        return event
+                .getPrimitive()
+                .getAllocation().get(0)
+                .getAfter()
+                .getOriginalTrade();
+    }
     public ValidatedAllocationEvent validateEconomics()
     {
         allocationEventPredicate = allocationEventPredicate
