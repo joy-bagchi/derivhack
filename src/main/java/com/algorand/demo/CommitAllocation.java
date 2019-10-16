@@ -4,28 +4,18 @@ import com.algorand.exceptions.ValidationException;
 import com.algorand.utils.*;
 import com.algorand.algosdk.algod.client.model.Transaction;
 
-import org.jongo.Jongo;
 import com.mongodb.DB;
 
-import com.algorand.algosdk.algod.client.model.Transaction;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.regnosys.rosetta.common.serialisation.RosettaObjectMapper;
 
 import java.io.IOException;
 import java.util.*;
 
-import com.google.inject.Inject;
-import com.google.inject.Guice;
-import com.google.inject.Injector;
-
 import org.isda.cdm.*;
-import org.isda.cdm.PartyRoleEnum.*;
 
 import java.util.stream.Collectors;
 import com.google.common.collect.MoreCollectors;
-
-import java.math.BigInteger;
 
 public  class CommitAllocation {
 
@@ -39,10 +29,10 @@ public  class CommitAllocation {
         try {
             Event event = rosettaObjectMapper
                     .readValue(fileContents, Event.class);
-            new MongoStore().addEventToStore(event);
+            MongoStore mongoStore = new MongoStore();
+            mongoStore.addEventToStore(event);
             //Add any new parties to the database, and commit the event to their own private databases
             List<Party> parties = event.getParty();
-            User user;
             DB mongoDB = MongoUtils.getDatabase("users");
             parties.parallelStream()
                     .map(party -> User.getOrCreateUser(party,mongoDB))
@@ -77,13 +67,6 @@ public  class CommitAllocation {
                         .map(r -> r.getPartyReference().getGlobalReference())
                         .collect(MoreCollectors.onlyElement());
 
-                // Get the other parties
-                Set<String> otherPartyReferences = execution.getPartyRole()
-                        .stream()
-                        .filter(r -> r.getRole() != PartyRoleEnum.EXECUTING_ENTITY)
-                        .map(r -> r.getPartyReference().getGlobalReference())
-                        .collect(Collectors.toSet());
-
                 // Get the client
                 String clientReference = execution.getPartyRole()
                         .stream()
@@ -94,17 +77,12 @@ public  class CommitAllocation {
                 // Get the executing user
                 User executingUser = User.getUser(executingPartyReference,mongoDB);
 
-                // Get all other users
-                List<User> otherUsers =  otherPartyReferences.stream()
-                        .map(reference -> User.getUser(reference,mongoDB))
-                        .collect(Collectors.toList());
+                // Get the client
+                User clientUser = User.getUser(clientReference,mongoDB);
 
-                //Send all other parties the contents of the event as a set of blockchain transactions
-                List<Transaction> transactions =  otherUsers
-                        .parallelStream()
-                        .map( u->  executingUser
-                                .sendEventTransaction(u,event,"allocation"))
-                        .collect(Collectors.toList());
+                //Send client the contents of the event as a set of blockchain transactions
+                Transaction transaction = executingUser.sendEventTransaction(clientUser, event, "allocation");
+                mongoStore.addAlgorandTransactionToStore(MongoStore.getGlobalKey(event), transaction, executingUser, clientUser, "allocation");
 
                 clients += clientReference + "\n";
             }

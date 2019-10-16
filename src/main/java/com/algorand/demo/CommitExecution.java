@@ -37,7 +37,8 @@ public  class CommitExecution {
             ObjectMapper rosettaObjectMapper = RosettaObjectMapper.getDefaultRosettaObjectMapper();
             Event event = rosettaObjectMapper.readValue(fileContents, Event.class);
 
-            new MongoStore().addEventToStore(event);
+            MongoStore mongoStore = new MongoStore();
+            mongoStore.addEventToStore(event);
 
 
             //Create Algorand Accounts for all parties
@@ -57,33 +58,21 @@ public  class CommitExecution {
 
             Execution execution  = validatedExecutionEvent.getExecution();
 
-            String executingPartyReference = execution.getPartyRole()
-                    .stream()
-                    .filter(r -> r.getRole() == PartyRoleEnum.EXECUTING_ENTITY)
-                    .map(r -> r.getPartyReference().getGlobalReference())
-                    .collect(MoreCollectors.onlyElement());
-
             // Get the executing party
             Party executingParty = validatedExecutionEvent.getExecutingEntity();
 
-            // Get all other parties
-            List<Party> otherParties = event.getParty().stream()
-                    .filter(p -> !executingPartyReference.equals(p.getMeta().getGlobalKey()))
-                    .collect(Collectors.toList());
+            // Get the counterparty
+            Party counterpartyParty = validatedExecutionEvent.getCounterparty();
 
             // Find or create the executing user
             User executingUser = User.getOrCreateUser(executingParty, mongoDB);
 
-            //Send all other parties the contents of the event as a set of blockchain transactions
-            List<User> users = otherParties.
-                    parallelStream()
-                    .map(p -> User.getOrCreateUser(p, mongoDB))
-                    .collect(Collectors.toList());
+            // Find or create the counterparty user
+            User counterpartyUser = User.getOrCreateUser(counterpartyParty, mongoDB);
 
-            List<Transaction> transactions = users
-                    .parallelStream()
-                    .map(u -> executingUser.sendEventTransaction(u, event, "execution"))
-                    .collect(Collectors.toList());
+            Transaction transaction = executingUser.sendEventTransaction(counterpartyUser, event, "execution");
+
+            mongoStore.addAlgorandTransactionToStore(MongoStore.getGlobalKey(event), transaction, executingUser, counterpartyUser, "execution");
         }
         catch (ValidationException ex)
         {

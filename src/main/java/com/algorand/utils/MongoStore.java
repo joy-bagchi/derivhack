@@ -1,5 +1,6 @@
 package com.algorand.utils;
 
+import com.algorand.algosdk.algod.client.model.Transaction;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.MongoClient;
@@ -7,86 +8,52 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.regnosys.rosetta.common.serialisation.RosettaObjectMapper;
 import org.bson.Document;
-import org.isda.cdm.Affirmation;
-import org.isda.cdm.Confirmation;
 import org.isda.cdm.Event;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
 
 import static com.mongodb.client.model.Filters.eq;
 
-public class MongoStore implements CDMLocalStore
+public class MongoStore extends CDMLocalStore
 {
-    private MongoDatabase database;
+
+    private static String DB_NAME = "cdmstore";
+
     private MongoCollection<Document> cdmGlobalKeyToEventCollection;
+    private MongoCollection<Document> cdmGlobalKeyToAlgorandTransactionCollection;
     private ObjectMapper rosettaMapper;
 
     public MongoStore()
     {
-        MongoClient mongoClient = new MongoClient( "localhost" );
-        this.database = mongoClient.getDatabase("cdmstore");
-        this.cdmGlobalKeyToEventCollection = this.database.getCollection("cdmGlobalKeyToEvent");
+        MongoClient mongoClient = MongoStore.getClient();
+        MongoDatabase database = mongoClient.getDatabase(MongoStore.DB_NAME);
+        this.cdmGlobalKeyToEventCollection = database.getCollection("cdmGlobalKeyToEvent");
+        this.cdmGlobalKeyToAlgorandTransactionCollection = database.getCollection("cdmGlobalKeyToAlgorandTransaction");
         this.rosettaMapper = RosettaObjectMapper.getDefaultRosettaObjectMapper();
+    }
+
+    private static MongoClient getClient()
+    {
+        return new MongoClient("localhost");
+    }
+
+    public static void dropDatabase()
+    {
+        MongoClient mongoClient = MongoStore.getClient();
+        mongoClient.dropDatabase(MongoStore.DB_NAME);
     }
 
     @Override
     public void addEventToStore(Event event) throws JsonProcessingException
     {
+        String globalKey = MongoStore.getGlobalKey(event);
         Document document = new Document(
-                "globalKey", event.getEventIdentifier().get(0).getMeta().getGlobalKey())
+                "globalKey", globalKey)
                 .append("eventJson", this.rosettaMapper.writeValueAsString(event));
         this.cdmGlobalKeyToEventCollection.insertOne(document);
-    }
-
-    @Override
-    public void  addAffirmToStore(Affirmation affirm) throws JsonProcessingException
-    {
-        Document document = new Document(
-                "globalKey", affirm.getIdentifier().get(0).getMeta().getGlobalKey())
-                .append("affirmJson", this.rosettaMapper.writeValueAsString(affirm));
-        this.cdmGlobalKeyToEventCollection.insertOne(document);
-    }
-
-    @Override
-    public Affirmation getAffirmFromStore(String globalKey) {
-        Document document = null;
-        boolean duplicateFound = false;
-        for(Document curDocument : this.cdmGlobalKeyToEventCollection.find(eq("globalKey", globalKey)))
-        {
-            if(document == null)
-            {
-                document = curDocument;
-            } else
-            {
-                duplicateFound = true;
-            }
-        }
-        if(duplicateFound)
-        {
-            System.out.println("WARNING: more than one event for key " + globalKey);
-        }
-
-        String eventJson = (String) document.get("affirmJson");
-        Event event = null;
-        try
-        {
-            event = this.rosettaMapper.readValue(eventJson, Event.class);
-        }
-        catch (IOException e)
-        {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
-    @Override
-    public void addConfirmToStore(Confirmation event) throws JsonProcessingException {
-
-    }
-
-    @Override
-    public Confirmation getConfirmFromStore(String globalKey) {
-        return null;
+        System.out.println("added event to mongo: globalKey=" + globalKey);
     }
 
     @Override
@@ -109,7 +76,7 @@ public class MongoStore implements CDMLocalStore
             System.out.println("WARNING: more than one event for key " + globalKey);
         }
 
-        String eventJson = (String) document.get("eventJson");
+        String eventJson = document.getString("eventJson");
         Event event = null;
         try
         {
@@ -122,35 +89,40 @@ public class MongoStore implements CDMLocalStore
         return event;
     }
 
-    public static void main(String[] args)
+    @Override
+    public void addAlgorandTransactionToStore(String globalKey, Transaction transaction, User sender, User receiver, String stage)
     {
-        String fileName = "./Files/UC1_block_execute_BT1.json";
-        String fileContents = ReadAndWrite.readFile(fileName);
-
-        //Read the event file into a CDM object using the Rosetta object mapper
-        ObjectMapper rosettaObjectMapper = RosettaObjectMapper.getDefaultRosettaObjectMapper();
-        Event inputEvent = null;
-        try
-        {
-            inputEvent = rosettaObjectMapper.readValue(fileContents, Event.class);
-        }
-        catch (IOException e)
-        {
-            e.printStackTrace();
-        }
-
-        MongoStore store = new MongoStore();
-
-        try
-        {
-            store.addEventToStore(inputEvent);
-        }
-        catch (JsonProcessingException e)
-        {
-            e.printStackTrace();
-        }
-
-        Event outputEvent = store.getEventFromStore(inputEvent.getEventIdentifier().get(0).getMeta().getGlobalKey());
-        System.out.println("found event: " + outputEvent.toString());
+        String transactionId = transaction.getTx();
+        Document document = new Document(
+                "cdmGlobalKey", globalKey)
+                .append("stage", stage)
+                .append("algorandTransactionId", transactionId)
+                .append("senderName", sender.name)
+                .append("receiverName", receiver.name)
+                .append("algorandSenderId", sender.algorandID)
+                .append("algorandReceiverId", receiver.algorandID);
+        this.cdmGlobalKeyToAlgorandTransactionCollection.insertOne(document);
+        System.out.println("added algorand transaction to mongo: globalKey=" + globalKey +", transactionId=" +
+                transactionId + ", senderName=" + sender.name + ", receiverName=" + receiver.name + ", senderId=" +
+                sender.algorandID + ", receiverId=" + receiver.algorandID);
     }
+
+    @Override
+    public void addAlgorandTransactionsToStore(String globalKey, List<Transaction> transactions, List<User> senders, List<User> receivers, String stage)
+    {
+        for(int transactionId = 0; transactionId < transactions.size(); transactionId++)
+        {
+            Transaction transaction = transactions.get(0);
+            User sender = senders.get(0);
+            User receiver = receivers.get(0);
+            this.addAlgorandTransactionToStore(globalKey, transaction, sender, receiver, stage);
+        }
+    }
+
+    @Override
+    public void addAlgorandTransactionsToStore(String globalKey, List<Transaction> transactions, User sender, List<User> receivers, String stage)
+    {
+        this.addAlgorandTransactionsToStore(globalKey, transactions, Collections.nCopies(receivers.size(), sender), receivers, stage);
+    }
+
 }
