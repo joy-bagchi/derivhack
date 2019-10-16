@@ -117,7 +117,7 @@ public  class CommitAllocation {
         catch (ValidationException e)
         {
             System.out.println("Validation failed with " );
-            e.getExceptionCollection().stream().forEach(System.out::println);
+            e.getExceptionCollection().forEach(System.out::println);
         }
     }
 }
