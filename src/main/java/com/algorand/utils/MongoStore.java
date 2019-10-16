@@ -1,5 +1,6 @@
 package com.algorand.utils;
 
+import com.algorand.algosdk.algod.client.model.Transaction;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.MongoClient;
@@ -10,29 +11,45 @@ import org.bson.Document;
 import org.isda.cdm.Event;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
 
 import static com.mongodb.client.model.Filters.eq;
 
-public class MongoStore implements CDMLocalStore
+public class MongoStore extends CDMLocalStore
 {
 
-    private MongoDatabase database;
+    private static String DB_NAME = "cdmstore";
+
     private MongoCollection<Document> cdmGlobalKeyToEventCollection;
+    private MongoCollection<Document> cdmGlobalKeyToAlgorandTransactionCollection;
     private ObjectMapper rosettaMapper;
 
     public MongoStore()
     {
-        MongoClient mongoClient = new MongoClient( "localhost" );
-        this.database = mongoClient.getDatabase("cdmstore");
-        this.cdmGlobalKeyToEventCollection = this.database.getCollection("cdmGlobalKeyToEvent");
+        MongoClient mongoClient = MongoStore.getClient();
+        MongoDatabase database = mongoClient.getDatabase(MongoStore.DB_NAME);
+        this.cdmGlobalKeyToEventCollection = database.getCollection("cdmGlobalKeyToEvent");
+        this.cdmGlobalKeyToAlgorandTransactionCollection = database.getCollection("cdmGlobalKeyToAlgorandTransaction");
         this.rosettaMapper = RosettaObjectMapper.getDefaultRosettaObjectMapper();
+    }
+
+    private static MongoClient getClient()
+    {
+        return new MongoClient("localhost");
+    }
+
+    public static void dropDatabase()
+    {
+        MongoClient mongoClient = MongoStore.getClient();
+        mongoClient.dropDatabase(MongoStore.DB_NAME);
     }
 
     @Override
     public void addEventToStore(Event event) throws JsonProcessingException
     {
         Document document = new Document(
-                "globalKey", event.getEventIdentifier().get(0).getMeta().getGlobalKey())
+                "globalKey", MongoStore.getGlobalKey(event))
                 .append("eventJson", this.rosettaMapper.writeValueAsString(event));
         this.cdmGlobalKeyToEventCollection.insertOne(document);
     }
@@ -57,7 +74,7 @@ public class MongoStore implements CDMLocalStore
             System.out.println("WARNING: more than one event for key " + globalKey);
         }
 
-        String eventJson = (String) document.get("eventJson");
+        String eventJson = document.getString("eventJson");
         Event event = null;
         try
         {
@@ -70,35 +87,39 @@ public class MongoStore implements CDMLocalStore
         return event;
     }
 
-    public static void main(String[] args)
+    @Override
+    public void addAlgorandTransactionToStore(String globalKey, String algorandTransactionId, String algorandSenderId, String algorandReceiverId)
     {
-        String fileName = "./Files/UC1_block_execute_BT1.json";
-        String fileContents = ReadAndWrite.readFile(fileName);
-
-        //Read the event file into a CDM object using the Rosetta object mapper
-        ObjectMapper rosettaObjectMapper = RosettaObjectMapper.getDefaultRosettaObjectMapper();
-        Event inputEvent = null;
-        try
-        {
-            inputEvent = rosettaObjectMapper.readValue(fileContents, Event.class);
-        }
-        catch (IOException e)
-        {
-            e.printStackTrace();
-        }
-
-        MongoStore store = new MongoStore();
-
-        try
-        {
-            store.addEventToStore(inputEvent);
-        }
-        catch (JsonProcessingException e)
-        {
-            e.printStackTrace();
-        }
-
-        Event outputEvent = store.getEventFromStore(inputEvent.getEventIdentifier().get(0).getMeta().getGlobalKey());
-        System.out.println("found event: " + outputEvent.toString());
+        Document document = new Document(
+                "cdmGlobalKey", globalKey)
+                .append("algorandTransactionId", algorandTransactionId)
+                .append("algorandSenderId", algorandSenderId)
+                .append("algorandReceiverId", algorandReceiverId);
+        this.cdmGlobalKeyToAlgorandTransactionCollection.insertOne(document);
     }
+
+    @Override
+    public void addAlgorandTransactionToStore(String globalKey, Transaction transaction, User sender, User receiver)
+    {
+        this.addAlgorandTransactionToStore(globalKey, transaction.getTx(), sender.algorandID, receiver.algorandID);
+    }
+
+    @Override
+    public void addAlgorandTransactionsToStore(String globalKey, List<Transaction> transactions, List<User> senders, List<User> receivers)
+    {
+        for(int transactionId = 0; transactionId < transactions.size(); transactionId++)
+        {
+            Transaction transaction = transactions.get(0);
+            User sender = senders.get(0);
+            User receiver = receivers.get(0);
+            this.addAlgorandTransactionToStore(globalKey, transaction, sender, receiver);
+        }
+    }
+
+    @Override
+    public void addAlgorandTransactionsToStore(String globalKey, List<Transaction> transactions, User sender, List<User> receivers)
+    {
+        this.addAlgorandTransactionsToStore(globalKey, transactions, Collections.nCopies(receivers.size(), sender), receivers);
+    }
+
 }

@@ -23,6 +23,7 @@ import java.util.stream.Stream;
 public  class CommitExecution {
 
     public static void main(String [] args) throws Exception {
+        MongoStore.dropDatabase();
         Stream.of(args).forEach(CommitExecution::commitTrade);
     }
 
@@ -37,7 +38,8 @@ public  class CommitExecution {
             ObjectMapper rosettaObjectMapper = RosettaObjectMapper.getDefaultRosettaObjectMapper();
             Event event = rosettaObjectMapper.readValue(fileContents, Event.class);
 
-            new MongoStore().addEventToStore(event);
+            MongoStore mongoStore = new MongoStore();
+            mongoStore.addEventToStore(event);
 
             //Create Algorand Accounts for all parties
             // and persist accounts to filesystem/database
@@ -83,6 +85,8 @@ public  class CommitExecution {
                     .parallelStream()
                     .map(u -> executingUser.sendEventTransaction(u, event, "execution"))
                     .collect(Collectors.toList());
+
+            mongoStore.addAlgorandTransactionsToStore(MongoStore.getGlobalKey(event), transactions, executingUser, users);
         }
         catch (ValidationException ex)
         {
