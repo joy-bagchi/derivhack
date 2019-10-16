@@ -39,7 +39,7 @@ public  class CommitAllocation {
         try {
             Event event = rosettaObjectMapper
                     .readValue(fileContents, Event.class);
-
+            new MongoStore().addEventToStore(event);
             //Add any new parties to the database, and commit the event to their own private databases
             List<Party> parties = event.getParty();
             User user;
@@ -117,7 +117,7 @@ public  class CommitAllocation {
         catch (ValidationException e)
         {
             System.out.println("Validation failed with " );
-            e.getExceptionCollection().stream().forEach(System.out::println);
+            e.getExceptionCollection().forEach(System.out::println);
         }
     }
 }

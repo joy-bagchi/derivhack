@@ -116,8 +116,6 @@ public  class CommitAffirmation {
             e.printStackTrace();
         }
     }
-
-
 }
 
      

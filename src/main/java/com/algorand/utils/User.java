@@ -13,6 +13,7 @@ import com.mongodb.DB;
 import com.mongodb.MongoCommandException;
 import com.regnosys.rosetta.common.serialisation.RosettaObjectMapper;
 import org.isda.cdm.Affirmation;
+import org.isda.cdm.Confirmation;
 import org.isda.cdm.Event;
 import org.isda.cdm.Party;
 import org.jongo.Jongo;
@@ -144,6 +145,26 @@ public class User{
 		}
 		catch(Exception e){
 
+			System.out.println("Caught an exception in sendTransaction");
+			e.printStackTrace();
+		}
+		return result;
+	}
+
+	public Transaction sendConfirmationTransaction(User user, Confirmation confirmation) {
+
+		com.algorand.algosdk.algod.client.model.Transaction result = null;
+		try{
+
+			ObjectMapper rosettaObjectMapper = RosettaObjectMapper.getDefaultRosettaObjectMapper();
+			rosettaObjectMapper.setSerializationInclusion(Include.NON_NULL);
+
+			String receiverAddress = user.algorandID;
+			String senderSecret = this.algorandPassphrase;
+			String notes = rosettaObjectMapper.writeValueAsString(confirmation);
+			result = AlgorandUtils.signAndSubmit(Globals.ALGOD_API_ADDR, Globals.ALGOD_API_TOKEN, senderSecret,  receiverAddress,  notes.getBytes(),BigInteger.valueOf(1000));
+		}
+		catch(Exception e){
 			System.out.println("Caught an exception in sendTransaction");
 			e.printStackTrace();
 		}

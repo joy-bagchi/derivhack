@@ -86,7 +86,7 @@ public class AffirmImpl{
 
 		//Build the affirmation
 		affirmationBuilder
-			.addIdentifier(getIdentifier("affirmation_"+ String.valueOf(tradeIndex), 1))
+			.addIdentifier(getIdentifier("affirmation_"+ String.valueOf(tradeIndex), 1, clientParties.get(0)))
 			.addParty(clientParties)
 			.addPartyRole(partyRoles)
 			.setLineage(lineage)
@@ -99,11 +99,14 @@ public class AffirmImpl{
 	}
 
 
-	private Identifier getIdentifier(String id, int version) {
+	private Identifier getIdentifier(String id, int version, Party party) {
 		return Identifier.builder()
 				.addAssignedIdentifierBuilder(AssignedIdentifier.builder()
 						.setIdentifier(FieldWithMetaString.builder().setValue(id).build())
 				.setVersion(version))
+				.setIssuerReference(ReferenceWithMetaParty.builder()
+				        .setGlobalReference(party.getMeta().getGlobalKey())
+				        .build())
 				.build();
 	}
 }
