@@ -101,8 +101,9 @@ public  class CommitAffirmation {
             Affirmation affirmation = new AffirmImpl().doEvaluate(allocationEvent,tradeIndex).build();
 
             //Send the affirmation to the broker
-            Transaction transaction =
-                    user.sendAffirmationTransaction(broker, affirmation);
+            Transaction transaction = user.sendAffirmationTransaction(broker, affirmation);
+            MongoStore mongoStore = new MongoStore();
+            mongoStore.addAlgorandTransactionToStore(MongoStore.getGlobalKey(allocationEvent), transaction, user, broker, "affirmation");
 
             result += transaction.getTx() + "," + brokerReference +"\n";
 
