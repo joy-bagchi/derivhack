@@ -50,7 +50,6 @@ public class PortfolioReport
         List<Event> events = mongoStore.getEventsByParty(clientName);
         List<Event> allocationEvents = events.stream().filter(event ->
                 event.getPrimitive() != null && event.getPrimitive().getAllocation().size() > 0).collect(Collectors.toList());
-        DB mongoDB = MongoUtils.getDatabase("users");
         BigDecimal quantity = new BigDecimal(0);
         for(Event allocationEvent : allocationEvents)
         {
@@ -65,7 +64,7 @@ public class PortfolioReport
                             .filter(r -> r.getRole() == PartyRoleEnum.CLIENT)
                             .map(r -> r.getPartyReference().getGlobalReference())
                             .collect(MoreCollectors.onlyElement());
-                    User client = User.getUser(clientReference, mongoDB);
+                    User client = User.getUser(clientReference);
                     if (client.name.equals(clientName))
                     {
                         quantity = quantity.add(trade.getExecution().getQuantity().getAmount());

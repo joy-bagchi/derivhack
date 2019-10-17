@@ -3,6 +3,7 @@ package com.algorand.demo;
 import com.algorand.algosdk.algod.client.model.Transaction;
 import com.algorand.cdmvalidators.ValidatedAllocationEvent;
 import com.algorand.cdmvalidators.ValidatedExecutionEvent;
+import com.algorand.cdmvalidators.ValidatedTranferPrimitive;
 import com.algorand.exceptions.ValidationException;
 import com.algorand.utils.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -10,19 +11,14 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.MoreCollectors;
 import com.mongodb.DB;
 import com.regnosys.rosetta.common.serialisation.RosettaObjectMapper;
-import com.rosetta.model.lib.records.Date;
 import com.rosetta.model.lib.records.DateImpl;
-import org.bouncycastle.util.encoders.Base64Encoder;
 import org.isda.cdm.*;
 import org.isda.cdm.metafields.*;
 
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.ZonedDateTime;
-import java.util.Base64;
 import java.util.List;
-import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class CommitSettlementEvent {
@@ -35,19 +31,65 @@ public class CommitSettlementEvent {
         //Read the input arguments and read them into files
         String fileName = args[0];
         String fileContents = ReadAndWrite.readFile(fileName);
-
+        DB mongoDB = MongoUtils.getDatabase("users");
         //Read the event file into a CDM object using the Rosetta object mapper
         try {
             Event allocationEvent = rosettaObjectMapper
                     .readValue(fileContents, Event.class);
             CommitSettlementEvent cse = new CommitSettlementEvent();
             Event settlementEvent = cse.createSettlement(allocationEvent);
+            ValidatedTranferPrimitive transfer = new ValidatedTranferPrimitive(settlementEvent, allocationEvent)
+                    .validateLineage()
+                    .validateEconomics()
+                    .validateSettlementDate();
+
+            transfer.getAllTransfers();
             new MongoStore().addEventToStore(settlementEvent, "settlement");
+
+            ValidatedAllocationEvent validatedEvent = new ValidatedAllocationEvent(allocationEvent)
+                    .validateEconomics()
+                    .validateLineage()
+                    .validateParties()
+                    .validateCDMDataRules();
+
+            //Get the allocated trades
+            List<Trade> allocatedTrades  = validatedEvent.getAllocatedTrades();
+
+            //Get the executions of the allocated trades
+            List<Execution> executions = allocatedTrades.stream()
+                    .map(trade -> trade.getExecution())
+                    .collect(Collectors.toList());
+            for(Execution execution: executions) {
+                //Get the executing party reference
+                String executingPartyReference = execution.getPartyRole()
+                        .stream()
+                        .filter(r -> r.getRole() == PartyRoleEnum.EXECUTING_ENTITY)
+                        .map(r -> r.getPartyReference().getGlobalReference())
+                        .collect(MoreCollectors.onlyElement());
+
+                // Get the client
+                String clientReference = execution.getPartyRole()
+                        .stream()
+                        .filter(r -> r.getRole() == PartyRoleEnum.CLIENT)
+                        .map(r -> r.getPartyReference().getGlobalReference())
+                        .collect(MoreCollectors.onlyElement());
+
+                // Get the executing user
+                User executingUser = User.getUser(executingPartyReference);
+                // Get the client
+                User clientUser = User.getUser(clientReference);
+                //Send client the event globalkey  as a  blockchain transaction
+                Transaction transaction = executingUser.sendEventTransaction(clientUser, settlementEvent, "settlement");
+            }
             System.out.println(cse.rosettaObjectMapper.writeValueAsString(settlementEvent));
         }
-        catch(IOException ex)
+        catch(IOException  ex)
         {
-
+            ex.printStackTrace();
+        }
+        catch (ValidationException ex){
+            System.out.println("Validation failed with reason");
+            ex.getExceptionCollection().forEach(System.out::println);
         }
     }
 
@@ -163,8 +205,6 @@ public class CommitSettlementEvent {
                 securityTrasferee = securityTrasferor;
                 securityTrasferor = temp;
         }
-
-
 
         TransferPrimitive tp = TransferPrimitive.builder()
                 .setStatus(TransferStatusEnum.SETTLED)

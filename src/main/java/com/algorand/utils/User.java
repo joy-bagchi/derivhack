@@ -49,7 +49,8 @@ public class User{
 		}
 	}
 
-	public static User getUser(String partyKey,DB mongoDB){
+	public static User getUser(String partyKey){
+		DB mongoDB = MongoUtils.getDatabase("users");
 		Jongo jongo = new Jongo(mongoDB);
 		MongoCollection users = jongo.getCollection("users");
 
