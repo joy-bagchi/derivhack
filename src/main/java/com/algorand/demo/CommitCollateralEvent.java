@@ -36,8 +36,8 @@ public class CommitCollateralEvent {
         User user = User.getOrCreateUser(parties.get(0), mongoDB);
         User marginAcct = User.getOrCreateUser(parties.get(1), mongoDB);
         mongoStore.addEventToStore(collateralEvent, "collateral");
-        Transaction transaction = user.sendEventTransaction(marginAcct, collateralEvent, "execution");
-        mongoStore.addAlgorandTransactionToStore(MongoStore.getGlobalKey(collateralEvent), transaction, user, marginAcct, "execution");
+        Transaction transaction = user.sendEventTransaction(marginAcct, collateralEvent, "collateral");
+        mongoStore.addAlgorandTransactionToStore(MongoStore.getGlobalKey(collateralEvent), transaction, user, marginAcct, "collateral");
         System.out.println(rosettaObjectMapper.writeValueAsString(collateralEvent));
     }
 

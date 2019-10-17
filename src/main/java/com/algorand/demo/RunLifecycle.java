@@ -11,6 +11,7 @@ public class RunLifecycle
         String[] affirmationFiles = allocationFiles;
         String[] confirmationFiles = allocationFiles;
         String[] settlementFiles = allocationFiles;
+        String[] collateralFiles = new String[]{};
         String[] reportFiles = new String[]{"./Files/UC6_Portfolio_Instructions_20191016.json", "./Files/UC6_Portfolio_Instructions_20191017.json"};
 
         MongoStore.dropDatabase();
@@ -19,6 +20,7 @@ public class RunLifecycle
         CommitAffirmation.main(affirmationFiles);
         CommitConfirmation.main(confirmationFiles);
         CommitSettlementEvent.main(settlementFiles);
+        CommitCollateralEvent.main(collateralFiles);
         PortfolioReport.main(reportFiles);
     }
 
