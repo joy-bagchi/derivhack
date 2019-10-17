@@ -8,13 +8,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.MoreCollectors;
 import com.mongodb.DB;
-import com.rosetta.model.lib.records.Date;
-import com.rosetta.model.lib.records.DateImpl;
 import org.isda.cdm.*;
 
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.util.ArrayList;
+import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -22,7 +20,7 @@ import java.util.stream.Collectors;
 public class PortfolioReport
 {
 
-    public static void main(String [] args) throws Exception, IOException {
+    public static void main(String [] args) throws Exception {
         for (String arg : args)
         {
             createReport(arg);
@@ -36,16 +34,17 @@ public class PortfolioReport
         System.out.println("json tree: " + reportInstructions.toString());
         String clientName = reportInstructions.get("PortfolioInstructions").get("Client").get("account").get("accountName").get("value").asText();
         String dateStr = reportInstructions.get("PortfolioInstructions").get("PortfolioDate").asText();
-        ArrayList<Integer> dateParts = new ArrayList<>();
-        for(String datePartStr : dateStr.split("-"))
-        {
-            dateParts.add(Integer.valueOf(datePartStr));
-        }
-        DateImpl date = new DateImpl(dateParts.get(2), dateParts.get(1), dateParts.get(0));
-        Portfolio portfolio = getPortfolio(clientName, date);
+        String[] datePartStrs = dateStr.split("-");
+        Integer[] dateParts = new Integer[]{Integer.valueOf(datePartStrs[0]), Integer.valueOf(datePartStrs[1]), Integer.valueOf(datePartStrs[2])};
+        LocalDate reportDateExecution = LocalDate.of(dateParts[0], dateParts[1], dateParts[2]);
+        LocalDate reportDateSettlement = LocalDate.of(dateParts[0], dateParts[1], dateParts[2]-1); // for now, all trades settle one day after the trade date
+        Portfolio executionPortfolio = getPortfolio(clientName, reportDateExecution);
+        Portfolio settlementPortfolio = getPortfolio(clientName, reportDateSettlement);
+        System.out.println("execution portfolio: " + executionPortfolio.toString());
+        System.out.println("settlement portfolio: " + settlementPortfolio.toString());
     }
 
-    public static Portfolio getPortfolio(String clientName, DateImpl date)
+    public static Portfolio getPortfolio(String clientName, LocalDate portfolioDate)
     {
         MongoStore mongoStore = new MongoStore();
         List<Event> events = mongoStore.getEventsByParty(clientName);
@@ -57,8 +56,8 @@ public class PortfolioReport
         {
             for (Trade trade : allocationEvent.getPrimitive().getAllocation().get(0).getAfter().getAllocatedTrade())
             {
-                Date tradeDate = trade.getExecution().getTradeDate().getValue();
-                if(tradeDate.compareTo(date) <= 0)
+                LocalDate tradeDate = trade.getExecution().getTradeDate().getValue().toLocalDate();
+                if(tradeDate.compareTo(portfolioDate) <= 0)
                 {
                     String clientReference = trade.getExecution()
                             .getPartyRole()

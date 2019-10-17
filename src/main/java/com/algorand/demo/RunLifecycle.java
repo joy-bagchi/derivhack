@@ -6,13 +6,20 @@ public class RunLifecycle
 {
     public static void runLifecycle() throws Exception
     {
+        String[] executionFiles = new String[]{"./Files/UC1_Block_Trade_BT1.json"};
+        String[] allocationFiles = new String[]{"./Files/UC2_Allocation_Trade_AT1.json"};
+        String[] affirmationFiles = allocationFiles;
+        String[] confirmationFiles = allocationFiles;
+        String[] settlementFiles = allocationFiles;
+        String[] reportFiles = new String[]{"./Files/UC6_Portfolio_Instructions_20191016.json", "./Files/UC6_Portfolio_Instructions_20191017.json"};
+
         MongoStore.dropDatabase();
-        CommitExecution.main(new String[] {"./Files/UC1_Block_Trade_BT1.json"});
-        CommitAllocation.main(new String[] {"./Files/UC2_Allocation_Trade_AT1.json"});
-        CommitAffirmation.main(new String[] {"./Files/UC2_Allocation_Trade_AT1.json"});
-        CommitConfirmation.main(new String[] {"./Files/UC2_Allocation_Trade_AT1.json"});
-        CommitSettlementEvent.main(new String[] {"./Files/UC2_Allocation_Trade_AT1.json"});
-        PortfolioReport.main(new String[] {"./Files/UC6_Portfolio_Instructions_20191016.json"});
+        CommitExecution.main(executionFiles);
+        CommitAllocation.main(allocationFiles);
+        CommitAffirmation.main(affirmationFiles);
+        CommitConfirmation.main(confirmationFiles);
+        CommitSettlementEvent.main(settlementFiles);
+        PortfolioReport.main(reportFiles);
     }
 
     public static void main(String[] args) throws Exception
