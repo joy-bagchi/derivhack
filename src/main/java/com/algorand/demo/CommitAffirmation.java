@@ -39,7 +39,8 @@ import com.regnosys.rosetta.common.serialisation.RosettaObjectMapper;
 
 public  class CommitAffirmation {
 
-    public static void main(String[] args){
+    public static void main(String[] args) throws JsonProcessingException
+    {
 
         //Load the database to lookup users
         DB mongoDB = MongoUtils.getDatabase("users");
@@ -100,10 +101,12 @@ public  class CommitAffirmation {
             //Compute the affirmation
             Affirmation affirmation = new AffirmImpl().doEvaluate(allocationEvent,tradeIndex).build();
 
+            MongoStore mongoStore = new MongoStore();
+            mongoStore.addAffirmationToStore(affirmation);
+
             //Send the affirmation to the broker
             Transaction transaction = user.sendAffirmationTransaction(broker, affirmation);
-            MongoStore mongoStore = new MongoStore();
-            mongoStore.addAlgorandTransactionToStore(MongoStore.getGlobalKey(allocationEvent), transaction, user, broker, "affirmation");
+            mongoStore.addAlgorandTransactionToStore(affirmation.getIdentifier().get(0).getMeta().getGlobalKey(), transaction, user, broker, "affirmation");
 
             result += transaction.getTx() + "," + brokerReference +"\n";
 

@@ -2,6 +2,7 @@ package com.algorand.demo;
 
 import com.algorand.algosdk.algod.client.model.Transaction;
 import com.algorand.utils.*;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.MoreCollectors;
 import com.mongodb.DB;
@@ -11,7 +12,8 @@ import org.isda.cdm.*;
 import java.util.List;
 
 public class CommitConfirmation {
-    public static void main(String[] args){
+    public static void main(String[] args) throws JsonProcessingException
+    {
 
         //Load the database to lookup users
         DB mongoDB = MongoUtils.getDatabase("users");
@@ -71,8 +73,13 @@ public class CommitConfirmation {
             //Compute the affirmation
             Confirmation confirmation = new ConfirmImpl().doEvaluate(allocationEvent,tradeIndex).build();
 
+            MongoStore mongoStore = new MongoStore();
+            mongoStore.addConfirmationToStore(confirmation);
+
             //Send the affirmation to the broker
             Transaction transaction = user.sendConfirmationTransaction(broker, confirmation);
+            mongoStore.addAlgorandTransactionToStore(confirmation.getIdentifier().get(0).getMeta().getGlobalKey(), transaction, user, broker, "confirmation");
+
             result += transaction.getTx() + "," + brokerReference +"\n";
 
             tradeIndex = tradeIndex + 1;

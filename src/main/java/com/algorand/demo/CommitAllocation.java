@@ -30,7 +30,7 @@ public  class CommitAllocation {
             Event event = rosettaObjectMapper
                     .readValue(fileContents, Event.class);
             MongoStore mongoStore = new MongoStore();
-            mongoStore.addEventToStore(event);
+            mongoStore.addEventToStore(event, "allocation");
             //Add any new parties to the database, and commit the event to their own private databases
             List<Party> parties = event.getParty();
             DB mongoDB = MongoUtils.getDatabase("users");

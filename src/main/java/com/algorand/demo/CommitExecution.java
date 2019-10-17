@@ -38,7 +38,7 @@ public  class CommitExecution {
             Event event = rosettaObjectMapper.readValue(fileContents, Event.class);
 
             MongoStore mongoStore = new MongoStore();
-            mongoStore.addEventToStore(event);
+            mongoStore.addEventToStore(event, "execution");
 
 
             //Create Algorand Accounts for all parties
