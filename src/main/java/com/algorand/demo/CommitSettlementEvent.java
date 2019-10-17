@@ -20,16 +20,20 @@ import java.time.LocalDate;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class CommitSettlementEvent {
 
     Event.EventBuilder settlementEventBuilder = Event.builder();;
     ObjectMapper rosettaObjectMapper = RosettaObjectMapper.getDefaultRosettaObjectMapper();
 
-    public static void main(String [] args) {
+    public static void main(String [] args) throws Exception {
+        Stream.of(args).forEach(CommitSettlementEvent::commitSettlement);
+    }
+
+    public static void commitSettlement(String fileName) {
         ObjectMapper rosettaObjectMapper = RosettaObjectMapper.getDefaultRosettaObjectMapper();
         //Read the input arguments and read them into files
-        String fileName = args[0];
         String fileContents = ReadAndWrite.readFile(fileName);
         DB mongoDB = MongoUtils.getDatabase("users");
         //Read the event file into a CDM object using the Rosetta object mapper
@@ -44,7 +48,8 @@ public class CommitSettlementEvent {
                     .validateSettlementDate();
 
             transfer.getAllTransfers();
-            new MongoStore().addEventToStore(settlementEvent, "settlement");
+            MongoStore mongoStore = new MongoStore();
+            mongoStore.addEventToStore(settlementEvent, "settlement");
 
             ValidatedAllocationEvent validatedEvent = new ValidatedAllocationEvent(allocationEvent)
                     .validateEconomics()
@@ -80,6 +85,7 @@ public class CommitSettlementEvent {
                 User clientUser = User.getUser(clientReference);
                 //Send client the event globalkey  as a  blockchain transaction
                 Transaction transaction = executingUser.sendEventTransaction(clientUser, settlementEvent, "settlement");
+                mongoStore.addAlgorandTransactionToStore(MongoStore.getGlobalKey(settlementEvent), transaction, executingUser, clientUser, "settlement");
             }
             System.out.println(cse.rosettaObjectMapper.writeValueAsString(settlementEvent));
         }

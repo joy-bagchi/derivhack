@@ -1,53 +1,36 @@
 package com.algorand.demo;
+
+import com.algorand.algosdk.algod.client.model.Transaction;
 import com.algorand.utils.*;
-import com.algorand.algosdk.algod.client.model.Transaction;
-
-import org.jongo.Jongo;
-import com.mongodb.DB;
-
-import com.algorand.algosdk.algod.client.model.Transaction;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.regnosys.rosetta.common.serialisation.RosettaObjectMapper;
-
-import java.util.*;
-
-import com.google.inject.Inject;
-import com.google.inject.Guice;
-import com.google.inject.Injector;
-import java.util.stream.Collectors;
-import com.google.common.collect.MoreCollectors;
-
-
-import org.isda.cdm.*;
-import org.isda.cdm.PartyRoleEnum.*;
-
-import com.fasterxml.jackson.annotation.*;
-import com.fasterxml.jackson.databind.annotation.*;
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.JsonParseException;
-
-import com.fasterxml.jackson.core.ObjectCodec;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonDeserializer;
-import com.fasterxml.jackson.databind.JsonNode;
-
-import java.math.BigInteger;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.MoreCollectors;
+import com.mongodb.DB;
 import com.regnosys.rosetta.common.serialisation.RosettaObjectMapper;
+import org.isda.cdm.Affirmation;
+import org.isda.cdm.Event;
+import org.isda.cdm.PartyRoleEnum;
+import org.isda.cdm.Trade;
+
+import java.util.List;
 
 public  class CommitAffirmation {
 
-    public static void main(String[] args) throws JsonProcessingException
+    public static void main(String [] args) throws Exception {
+        for (String arg : args)
+        {
+            commitAffirmation(arg);
+        }
+    }
+
+    public static void commitAffirmation(String fileName) throws JsonProcessingException
     {
 
         //Load the database to lookup users
         DB mongoDB = MongoUtils.getDatabase("uers");
 
         //Load a file with client global keys
-        String allocationFile = args[0];
-        String allocationCDM = ReadAndWrite.readFile(allocationFile);
+        String allocationCDM = ReadAndWrite.readFile(fileName);
         ObjectMapper rosettaObjectMapper = RosettaObjectMapper.getDefaultRosettaObjectMapper();
         Event allocationEvent = null;
         try{

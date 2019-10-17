@@ -1,21 +1,28 @@
 package com.algorand.demo;
 
 import com.algorand.utils.MongoStore;
-import com.algorand.utils.MongoUtils;
 import com.algorand.utils.ReadAndWrite;
 import com.algorand.utils.User;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.MoreCollectors;
-import com.mongodb.DB;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVPrinter;
 import org.isda.cdm.*;
+import org.isda.cdm.metafields.FieldWithMetaString;
+import org.isda.cdm.metafields.ReferenceWithMetaParty;
 
+import java.io.BufferedWriter;
+import java.io.File;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.time.LocalDate;
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Map;
 
 public class PortfolioReport
 {
@@ -42,15 +49,31 @@ public class PortfolioReport
         Portfolio settlementPortfolio = getPortfolio(clientName, reportDateSettlement);
         System.out.println("execution portfolio: " + executionPortfolio.toString());
         System.out.println("settlement portfolio: " + settlementPortfolio.toString());
+
+        createPortfolioReport(executionPortfolio, reportFile);
     }
 
     public static Portfolio getPortfolio(String clientName, LocalDate portfolioDate)
     {
         MongoStore mongoStore = new MongoStore();
         List<Event> events = mongoStore.getEventsByParty(clientName);
-        List<Event> allocationEvents = events.stream().filter(event ->
-                event.getPrimitive() != null && event.getPrimitive().getAllocation().size() > 0).collect(Collectors.toList());
-        BigDecimal quantity = new BigDecimal(0);
+        List<Event> allocationEvents = new ArrayList<>();
+        for(Event event : events)
+        {
+            PrimitiveEvent primitive = event.getPrimitive();
+            if(primitive != null)
+            {
+                List<AllocationPrimitive> allocationPrimitives = primitive.getAllocation();
+                if(allocationPrimitives != null)
+                {
+                    if (primitive.getAllocation().size() > 0)
+                    {
+                        allocationEvents.add(event);
+                    }
+                }
+            }
+        }
+        HashMap<Product, BigDecimal> quantitiesByProduct = new HashMap<>();
         for(Event allocationEvent : allocationEvents)
         {
             for (Trade trade : allocationEvent.getPrimitive().getAllocation().get(0).getAfter().getAllocatedTrade())
@@ -67,21 +90,69 @@ public class PortfolioReport
                     User client = User.getUser(clientReference);
                     if (client.name.equals(clientName))
                     {
-                        quantity = quantity.add(trade.getExecution().getQuantity().getAmount());
+                        Product product = trade.getExecution().getProduct();
+                        if(quantitiesByProduct.containsKey(product))
+                        {
+                            quantitiesByProduct.put(product, quantitiesByProduct.get(product).add(trade.getExecution().getQuantity().getAmount()));
+                        } else
+                        {
+                            quantitiesByProduct.put(product, trade.getExecution().getQuantity().getAmount());
+                        }
                     }
                 }
             }
         }
+
+        List<Position> positions = new ArrayList<>();
+        for(Map.Entry<Product, BigDecimal> entry : quantitiesByProduct.entrySet())
+        {
+            positions.add(Position.builder()
+                    .setProduct(entry.getKey())
+                    .setQuantity(Quantity.builder()
+                            .setAmount(entry.getValue())
+                            .build())
+                    .build());
+        }
         Portfolio portfolio = Portfolio.builder()
                 .setPortfolioState(PortfolioState.builder()
-                        .addPositions(Arrays.asList(Position.builder()
-                                .setQuantity(Quantity.builder()
-                                        .setAmount(quantity)
+                        .addPositions(positions)
+                        .build())
+                .setAggregationParameters(AggregationParameters.builder()
+                        .addParty(ReferenceWithMetaParty.builder()
+                                .setValue(Party.builder()
+                                        .setAccount(Account.builder()
+                                                .setAccountName(FieldWithMetaString.builder()
+                                                        .setValue(clientName)
+                                                        .build())
+                                                .build())
                                         .build())
-                                .build()))
+                                .build())
                         .build())
                 .build();
         System.out.println("portfolio: " + portfolio.toString());
         return portfolio;
+    }
+
+    public static void createPortfolioReport(Portfolio portfolio, String reportName) throws IOException
+    {
+        new File("./Files/Reports").mkdir();
+        String fileName = String.valueOf(Paths.get(reportName).getFileName());
+        try(
+
+            BufferedWriter writer = Files.newBufferedWriter(Paths.get("./Files/Reports/" + fileName + ".csv"));
+            CSVPrinter csvPrinter = new CSVPrinter(writer, CSVFormat.DEFAULT
+                    .withHeader("Client", "Product", "Quantity"));
+        )
+        {
+
+            for(Position position : portfolio.getPortfolioState().getPositions())
+            {
+                csvPrinter.printRecord(
+                        portfolio.getAggregationParameters().getParty().get(0).getValue().getAccount().getAccountName().getValue(),
+                        position.getProduct().getSecurity().getBond().getProductIdentifier().getIdentifier().get(0).getValue(),
+                        position.getQuantity().getAmount().toString()
+                );
+            }
+        }
     }
 }

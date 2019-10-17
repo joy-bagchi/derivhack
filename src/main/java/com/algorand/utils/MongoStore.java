@@ -118,6 +118,7 @@ public class MongoStore extends CDMLocalStore
     @Override
     public void addAlgorandTransactionToStore(String globalKey, Transaction transaction, User sender, User receiver, String stage)
     {
+        System.out.println("adding transaction to mongo store: sender=" + sender.algorandID + ", receiver=" + receiver.algorandID);
         String transactionId = transaction.getTx();
         Document document = new Document(
                 "cdmGlobalKey", globalKey)

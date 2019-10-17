@@ -6,8 +6,8 @@ public class RunLifecycle
 {
     public static void runLifecycle() throws Exception
     {
-        String[] executionFiles = new String[]{"./Files/UC1_Block_Trade_BT1.json"};
-        String[] allocationFiles = new String[]{"./Files/UC2_Allocation_Trade_AT1.json"};
+        String[] executionFiles = new String[]{"./Files/UC1_Block_Trade_BT1.json", "./Files/UC1_Block_Trade_BT5.json", "./Files/UC1_Block_Trade_BT8.json"};
+        String[] allocationFiles = new String[]{"./Files/UC2_Allocation_Trade_AT1.json", "./Files/UC2_Allocation_Trade_AT5.json", "./Files/UC2_Allocation_Trade_AT8.json"};
         String[] affirmationFiles = allocationFiles;
         String[] confirmationFiles = allocationFiles;
         String[] settlementFiles = allocationFiles;

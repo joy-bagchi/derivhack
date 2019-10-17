@@ -1,28 +1,32 @@
 package com.algorand.demo;
+
+import com.algorand.algosdk.algod.client.model.Transaction;
 import com.algorand.cdmvalidators.ValidatedAllocationEvent;
 import com.algorand.exceptions.ValidationException;
-import com.algorand.utils.*;
-import com.algorand.algosdk.algod.client.model.Transaction;
-
-import com.mongodb.DB;
-
+import com.algorand.utils.MongoStore;
+import com.algorand.utils.MongoUtils;
+import com.algorand.utils.ReadAndWrite;
+import com.algorand.utils.User;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.MoreCollectors;
+import com.mongodb.DB;
 import com.regnosys.rosetta.common.serialisation.RosettaObjectMapper;
-
-import java.io.IOException;
-import java.util.*;
-
 import org.isda.cdm.*;
 
+import java.io.IOException;
+import java.util.List;
 import java.util.stream.Collectors;
-import com.google.common.collect.MoreCollectors;
+import java.util.stream.Stream;
 
 public  class CommitAllocation {
 
-    public static void main(String [] args) {
+    public static void main(String [] args) throws Exception {
+        Stream.of(args).forEach(CommitAllocation::commitAllocate);
+    }
+
+    public static void commitAllocate(String fileName) {
         ObjectMapper rosettaObjectMapper = RosettaObjectMapper.getDefaultRosettaObjectMapper();
         //Read the input arguments and read them into files
-        String fileName = args[0];
         String fileContents = ReadAndWrite.readFile(fileName);
 
         //Read the event file into a CDM object using the Rosetta object mapper

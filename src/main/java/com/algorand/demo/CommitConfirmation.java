@@ -7,20 +7,30 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.MoreCollectors;
 import com.mongodb.DB;
 import com.regnosys.rosetta.common.serialisation.RosettaObjectMapper;
-import org.isda.cdm.*;
+import org.isda.cdm.Confirmation;
+import org.isda.cdm.Event;
+import org.isda.cdm.PartyRoleEnum;
+import org.isda.cdm.Trade;
 
 import java.util.List;
 
 public class CommitConfirmation {
-    public static void main(String[] args) throws JsonProcessingException
+
+    public static void main(String [] args) throws Exception {
+        for (String arg : args)
+        {
+            commitConfirmation(arg);
+        }
+    }
+
+    public static void commitConfirmation(String fileName) throws JsonProcessingException
     {
 
         //Load the database to lookup users
         DB mongoDB = MongoUtils.getDatabase("users");
 
         //Load a file with client global keys
-        String allocationFile = args[0];
-        String allocationCDM = ReadAndWrite.readFile(allocationFile);
+        String allocationCDM = ReadAndWrite.readFile(fileName);
         ObjectMapper rosettaObjectMapper = RosettaObjectMapper.getDefaultRosettaObjectMapper();
         Event allocationEvent = null;
         try{
