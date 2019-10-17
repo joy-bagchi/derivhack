@@ -10,17 +10,12 @@ import ch.qos.logback.classic.LoggerContext;
 import org.slf4j.LoggerFactory;
 
 public class MongoUtils{
+	private static MongoClientURI uri = new MongoClientURI(
+				"mongodb://localhost");
+	private static MongoClient mongoClient = new MongoClient(uri);
 
 	public static DB getDatabase(String name){
-
-	LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
-	Logger rootLogger = loggerContext.getLogger("org.mongodb.driver");
-	rootLogger.setLevel(Level.OFF);
-	MongoClientURI uri = new MongoClientURI(
-    	"mongodb://localhost");
-
-	MongoClient mongoClient = new MongoClient(uri);
-	DB database = mongoClient.getDB(name);
-	return database;
-}
+		DB database = mongoClient.getDB(name);
+		return database;
+	}
 }

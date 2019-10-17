@@ -75,10 +75,10 @@ public  class CommitAllocation {
                         .collect(MoreCollectors.onlyElement());
 
                 // Get the executing user
-                User executingUser = User.getUser(executingPartyReference,mongoDB);
+                User executingUser = User.getUser(executingPartyReference);
 
                 // Get the client
-                User clientUser = User.getUser(clientReference,mongoDB);
+                User clientUser = User.getUser(clientReference);
 
                 //Send client the contents of the event as a set of blockchain transactions
                 Transaction transaction = executingUser.sendEventTransaction(clientUser, event, "allocation");

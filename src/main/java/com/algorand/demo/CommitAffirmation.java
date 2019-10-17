@@ -43,7 +43,7 @@ public  class CommitAffirmation {
     {
 
         //Load the database to lookup users
-        DB mongoDB = MongoUtils.getDatabase("users");
+        DB mongoDB = MongoUtils.getDatabase("uers");
 
         //Load a file with client global keys
         String allocationFile = args[0];
@@ -79,7 +79,7 @@ public  class CommitAffirmation {
                     .map(r -> r.getPartyReference().getGlobalReference())
                     .collect(MoreCollectors.onlyElement());
 
-            User broker = User.getUser(brokerReference,mongoDB);
+            User broker = User.getUser(brokerReference);
 
             //Get the client reference for that trade
             String clientReference = trade.getExecution()
@@ -90,7 +90,7 @@ public  class CommitAffirmation {
                     .collect(MoreCollectors.onlyElement());
 
             // Load the client user, with algorand passphrase
-            User user = User.getUser(clientReference,mongoDB);
+            User user = User.getUser(clientReference);
             String algorandPassphrase = user.algorandPassphrase;
 
             // Confirm the user has received the global key of the allocation from the broker

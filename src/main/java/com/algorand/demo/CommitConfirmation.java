@@ -52,7 +52,7 @@ public class CommitConfirmation {
                     .map(r -> r.getPartyReference().getGlobalReference())
                     .collect(MoreCollectors.onlyElement());
 
-            User broker = User.getUser(brokerReference,mongoDB);
+            User broker = User.getUser(brokerReference);
 
             //Get the client reference for that trade
             String clientReference = trade.getExecution()
@@ -63,7 +63,7 @@ public class CommitConfirmation {
                     .collect(MoreCollectors.onlyElement());
 
             // Load the client user, with algorand passphrase
-            User user = User.getUser(clientReference,mongoDB);
+            User user = User.getUser(clientReference);
             String algorandPassphrase = user.algorandPassphrase;
 
             // Confirm the user has received the global key of the allocation from the broker
@@ -81,7 +81,6 @@ public class CommitConfirmation {
             mongoStore.addAlgorandTransactionToStore(confirmation.getIdentifier().get(0).getMeta().getGlobalKey(), transaction, user, broker, "confirmation");
 
             result += transaction.getTx() + "," + brokerReference +"\n";
-
             tradeIndex = tradeIndex + 1;
         }
         try{

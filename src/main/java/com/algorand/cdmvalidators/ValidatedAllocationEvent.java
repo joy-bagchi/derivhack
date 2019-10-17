@@ -1,6 +1,8 @@
 package com.algorand.cdmvalidators;
 
 import com.algorand.exceptions.ValidationException;
+import com.google.common.collect.Lists;
+import com.google.common.collect.MoreCollectors;
 import com.rosetta.model.lib.path.RosettaPath;
 import com.rosetta.model.lib.validation.ValidationResult;
 import org.isda.cdm.*;
@@ -10,6 +12,7 @@ import org.isda.cdm.validation.datarule.AllocationOutcomeExecutionClosedDataRule
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 public class ValidatedAllocationEvent extends BaseEventValidator{
 
@@ -19,6 +22,48 @@ public class ValidatedAllocationEvent extends BaseEventValidator{
         if(event.getPrimitive().getAllocation() == null)
             throw new ValidationException("The provided event does not contain a primitive of type 'allocation'", event);
         allocationEventPredicate = e -> {return true;};
+    }
+
+    public Party getCounterParty() throws ValidationException {
+        validate(allocationEventPredicate);
+        ValidatedExecutionEvent executionEvent = new ValidatedExecutionEvent(event, event.getPrimitive()
+                .getAllocation().get(0)
+                .getBefore()
+                .getExecution());
+        return executionEvent.getCounterparty();
+    }
+
+    public Party getExecutingEntity() throws ValidationException {
+        validate(allocationEventPredicate);
+        ValidatedExecutionEvent executionEvent = new ValidatedExecutionEvent(event, event.getPrimitive()
+                .getAllocation().get(0)
+                .getBefore()
+                .getExecution());
+        return executionEvent.getExecutingEntity();
+    }
+
+    public List<Party> getSubAccounts() throws ValidationException {
+        List<Party> users = Lists.newArrayList();
+        //Get the executions of the allocated trades
+        List<Execution> executions = getAllocatedTrades().stream()
+                .map(trade -> trade.getExecution())
+                .collect(Collectors.toList());
+
+        for (Execution execution : executions) {
+
+            // Get the client
+            String clientReference = execution.getPartyRole()
+                    .stream()
+                    .filter(r -> r.getRole() == PartyRoleEnum.CLIENT)
+                    .map(r -> r.getPartyReference().getGlobalReference())
+                    .collect(MoreCollectors.onlyElement());
+
+            users.add(event.getParty()
+                    .stream()
+                    .filter(party -> party.getMeta().getGlobalKey() == clientReference)
+                    .collect(MoreCollectors.onlyElement()));
+        }
+        return users;
     }
 
     public List<Trade> getAllocatedTrades() throws ValidationException {
@@ -44,6 +89,8 @@ public class ValidatedAllocationEvent extends BaseEventValidator{
                 .and(this::validateQuantitySumMatchOriginal);
         return this;
     }
+
+
 
     public ValidatedAllocationEvent validateParties() {
         allocationEventPredicate = allocationEventPredicate
