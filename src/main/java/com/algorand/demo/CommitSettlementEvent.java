@@ -4,10 +4,7 @@ import com.algorand.algosdk.algod.client.model.Transaction;
 import com.algorand.cdmvalidators.ValidatedAllocationEvent;
 import com.algorand.cdmvalidators.ValidatedExecutionEvent;
 import com.algorand.exceptions.ValidationException;
-import com.algorand.utils.MongoStore;
-import com.algorand.utils.MongoUtils;
-import com.algorand.utils.ReadAndWrite;
-import com.algorand.utils.User;
+import com.algorand.utils.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
 import com.google.common.collect.MoreCollectors;
@@ -15,13 +12,17 @@ import com.mongodb.DB;
 import com.regnosys.rosetta.common.serialisation.RosettaObjectMapper;
 import com.rosetta.model.lib.records.Date;
 import com.rosetta.model.lib.records.DateImpl;
+import org.bouncycastle.util.encoders.Base64Encoder;
 import org.isda.cdm.*;
 import org.isda.cdm.metafields.*;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.ZonedDateTime;
+import java.util.Base64;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class CommitSettlementEvent {
@@ -50,10 +51,6 @@ public class CommitSettlementEvent {
     }
 
     public Event createSettlement(Event allocationEvent) {
-
-        //Read the input arguments and read them into files
-        
-        //Read the event file into a CDM object using the Rosetta object mapper
         try {
             settlementEventBuilder.setAction(ActionEnum.NEW);
             //Add any new parties to the database, and commit the event to their own private databases
@@ -119,7 +116,19 @@ public class CommitSettlementEvent {
                     .setIssuerReference(ReferenceWithMetaParty.builder()
                             .setGlobalReference(executingBroker.getPartyReference().getGlobalReference())
                             .build())
-
+                    .addAssignedIdentifier(AssignedIdentifier.builder()
+                            .setVersion(1)
+                            .setIdentifier(FieldWithMetaString.builder()
+                                    .setValue(UniqueIdentifierGenerator.randomAlphaNumeric(13))
+                                    .build())
+                            .build())
+                    .setMeta(MetaFields.builder()
+                            .setGlobalKey(UniqueIdentifierGenerator.randomHash())
+                            .build())
+                    .build());
+            settlementEventBuilder.addTimestamp(EventTimestamp.builder()
+                    .setDateTime(ZonedDateTime.now())
+                    .setQualification(EventTimestampQualificationEnum.EVENT_CREATION_DATE_TIME)
                     .build());
 
         }

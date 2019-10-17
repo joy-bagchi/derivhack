@@ -11,6 +11,7 @@ import com.rosetta.model.lib.records.DateImpl;
 import org.isda.cdm.*;
 import org.isda.cdm.AllocationPrimitive.AllocationPrimitiveBuilder;
 import org.isda.cdm.metafields.FieldWithMetaString;
+import org.isda.cdm.metafields.MetaFields;
 import org.isda.cdm.metafields.ReferenceWithMetaParty;
 import org.isda.cdm.processor.EventEffectProcessStep;
 import static org.isda.cdm.AffirmationStatusEnum.AFFIRMED;
@@ -104,6 +105,9 @@ public class AffirmImpl{
 				.addAssignedIdentifierBuilder(AssignedIdentifier.builder()
 						.setIdentifier(FieldWithMetaString.builder().setValue(id).build())
 				.setVersion(version))
+				.setMeta(MetaFields.builder()
+						.setGlobalKey(UniqueIdentifierGenerator.randomHash())
+						.build())
 				.setIssuerReference(ReferenceWithMetaParty.builder()
 				        .setGlobalReference(party.getMeta().getGlobalKey())
 				        .build())
