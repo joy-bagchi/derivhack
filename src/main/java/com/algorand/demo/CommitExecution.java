@@ -1,23 +1,16 @@
-
 package com.algorand.demo;
+
 import com.algorand.cdmvalidators.ValidatedExecutionEvent;
 import com.algorand.exceptions.ValidationException;
 import com.algorand.utils.*;
 import com.algorand.algosdk.algod.client.model.Transaction;
-
 import com.mongodb.DB;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.regnosys.rosetta.common.serialisation.RosettaObjectMapper;
-
 import java.io.IOException;
 import java.util.*;
-
 import org.isda.cdm.*;
-
 import java.util.stream.Collectors;
-import com.google.common.collect.MoreCollectors;
-
 import java.util.stream.Stream;
 
 public  class CommitExecution {

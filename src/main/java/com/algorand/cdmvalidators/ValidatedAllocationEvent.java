@@ -83,14 +83,6 @@ public class ValidatedAllocationEvent extends BaseEventValidator{
                 .getAfter()
                 .getOriginalTrade();
     }
-    public ValidatedAllocationEvent validateEconomics()
-    {
-        allocationEventPredicate = allocationEventPredicate
-                .and(this::validateQuantitySumMatchOriginal);
-        return this;
-    }
-
-
 
     public ValidatedAllocationEvent validateParties() {
         allocationEventPredicate = allocationEventPredicate
@@ -103,6 +95,13 @@ public class ValidatedAllocationEvent extends BaseEventValidator{
         allocationEventPredicate = allocationEventPredicate
                 .and(this::validateLineageMatchesAfterOriginalTrade)
                 .and(this::validateLineageMatchesBeforeExecution);
+        return this;
+    }
+
+    public ValidatedAllocationEvent validateEconomics()
+    {
+        allocationEventPredicate = allocationEventPredicate
+                .and(this::validateQuantitySumMatchOriginal);
         return this;
     }
 

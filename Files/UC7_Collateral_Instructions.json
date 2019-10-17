@@ -20,7 +20,7 @@
       ]
     },
     "ClientSegregated": {
-      "account": {
+      "account": {	
         "accountName": {
           "value": "Client1_ACT#8"
         },

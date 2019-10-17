@@ -24,7 +24,7 @@ import java.util.stream.Stream;
 
 public class CommitSettlementEvent {
 
-    Event.EventBuilder settlementEventBuilder = Event.builder();;
+    Event.EventBuilder settlementEventBuilder = Event.builder();
     ObjectMapper rosettaObjectMapper = RosettaObjectMapper.getDefaultRosettaObjectMapper();
 
     public static void main(String [] args) throws Exception {
@@ -155,7 +155,7 @@ public class CommitSettlementEvent {
                     .build();
             settlementEventBuilder.setLineage(allocationLineage);
             settlementEventBuilder.setMeta(MetaFields.builder()
-                    .setGlobalKey("aaa0c8f2-2288-4184-be5c-fda6a4075402")
+                    .setGlobalKey(UniqueIdentifierGenerator.randomHash())
                     .build());
             PartyRole executingBroker = originalTrade.getExecution().getPartyRole().stream()
                     .filter(r -> r.getRole() == PartyRoleEnum.EXECUTING_ENTITY)
@@ -213,6 +213,12 @@ public class CommitSettlementEvent {
         }
 
         TransferPrimitive tp = TransferPrimitive.builder()
+                .setIdentifier(FieldWithMetaString.builder()
+                        .setValue(UniqueIdentifierGenerator.randomAlphaNumeric(13))
+                        .setMeta(MetaFields.builder()
+                                .setGlobalKey(UniqueIdentifierGenerator.randomHash())
+                                .build())
+                        .build())
                 .setStatus(TransferStatusEnum.SETTLED)
                 .setSettlementType(TransferSettlementEnum.DELIVERY_VERSUS_PAYMENT)
                 .addSecurityTransfer(SecurityTransferComponent.builder()

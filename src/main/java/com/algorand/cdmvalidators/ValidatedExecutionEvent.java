@@ -217,6 +217,7 @@ public class ValidatedExecutionEvent extends BaseEventValidator {
         addException("Executing Entity and Counterparty should be opposite sides, but they are on same side");
         return false;
     }
+
     private boolean validateTradeDateNotInFuture(Event event) {
         Date tradeDate = execution.getTradeDate().getValue();
         LocalDate today = LocalDate.now();
