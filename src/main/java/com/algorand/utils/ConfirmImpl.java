@@ -3,10 +3,7 @@ package com.algorand.utils;
 import com.regnosys.rosetta.common.hashing.*;
 import com.rosetta.model.lib.process.PostProcessStep;
 import org.isda.cdm.*;
-import org.isda.cdm.metafields.FieldWithMetaString;
-import org.isda.cdm.metafields.ReferenceWithMetaEvent;
-import org.isda.cdm.metafields.ReferenceWithMetaExecution;
-import org.isda.cdm.metafields.ReferenceWithMetaParty;
+import org.isda.cdm.metafields.*;
 
 import java.util.Arrays;
 import java.util.List;
@@ -23,7 +20,6 @@ public class ConfirmImpl {
                 new RosettaKeyValueProcessStep(RosettaKeyValueHashFunction::new),
                 new ReKeyProcessStep(rosettaKeyProcessStep));
     }
-
 
     public Confirmation.ConfirmationBuilder doEvaluate(Event allocation, int tradeIndex){
 
@@ -88,6 +84,9 @@ public class ConfirmImpl {
                 .addAssignedIdentifierBuilder(AssignedIdentifier.builder()
                         .setIdentifier(FieldWithMetaString.builder().setValue(id).build())
                         .setVersion(version))
+                .setMeta(MetaFields.builder()
+                        .setGlobalKey(UniqueIdentifierGenerator.randomHash())
+                        .build())
                 .setIssuerReference(ReferenceWithMetaParty.builder()
                         .setGlobalReference(party.getMeta().getGlobalKey())
                         .build())
