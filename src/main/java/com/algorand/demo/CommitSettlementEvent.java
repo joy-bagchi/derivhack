@@ -89,7 +89,7 @@ public class CommitSettlementEvent {
             transferPrimitives.add(createTransferForUser(originalTrade, PartyRoleEnum.COUNTERPARTY, originalExecution.getSideForExecutingEntity().getRole()));
             for(Trade allocatedTrade: allocatedTrades)
             {
-                transferPrimitives.add(createTransferForUser(originalTrade, PartyRoleEnum.CLIENT,  originalExecution.getSideForExecutingEntity().getRole()));
+                transferPrimitives.add(createTransferForUser(allocatedTrade, PartyRoleEnum.CLIENT,  originalExecution.getSideForExecutingEntity().getRole()));
             }
             settlementEventBuilder.setPrimitive(PrimitiveEvent.builder()
                     .addTransfer(transferPrimitives).build());
@@ -98,8 +98,7 @@ public class CommitSettlementEvent {
             allTrades.forEach(t -> {
                 executionReferences.add(ReferenceWithMetaExecution.builder()
                         .setGlobalReference(
-                                t.getExecution()
-                                 .getIdentifier().get(0).getMeta().getGlobalKey())
+                                t.getExecution().getMeta().getGlobalKey())
                         .build());
             });
             Lineage allocationLineage = Lineage.builder()
@@ -112,6 +111,17 @@ public class CommitSettlementEvent {
             settlementEventBuilder.setMeta(MetaFields.builder()
                     .setGlobalKey("aaa0c8f2-2288-4184-be5c-fda6a4075402")
                     .build());
+            PartyRole executingBroker = originalTrade.getExecution().getPartyRole().stream()
+                    .filter(r -> r.getRole() == PartyRoleEnum.EXECUTING_ENTITY)
+                    .collect(MoreCollectors.onlyElement());
+
+            settlementEventBuilder.addEventIdentifier(Identifier.builder()
+                    .setIssuerReference(ReferenceWithMetaParty.builder()
+                            .setGlobalReference(executingBroker.getPartyReference().getGlobalReference())
+                            .build())
+
+                    .build());
+
         }
         catch (ValidationException e) {
             System.out.println("Validation failed with ");
