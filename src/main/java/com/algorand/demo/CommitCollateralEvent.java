@@ -1,5 +1,7 @@
 package com.algorand.demo;
 
+import com.algorand.algosdk.algod.client.model.Transaction;
+import com.algorand.utils.MongoStore;
 import com.algorand.utils.MongoUtils;
 import com.algorand.utils.UniqueIdentifierGenerator;
 import com.algorand.utils.User;
@@ -24,11 +26,18 @@ import java.util.stream.Collectors;
 public class CommitCollateralEvent {
 
     Event.EventBuilder collateralEventBuilder;
-    static ObjectMapper jsonmapper = new ObjectMapper();
+    static List<Party> parties = Lists.newArrayList();
 
     public static void main(String[] args) throws IOException {
         ObjectMapper rosettaObjectMapper = RosettaObjectMapper.getDefaultRosettaObjectMapper();
+        DB mongoDB = MongoUtils.getDatabase("users");
         Event collateralEvent = new CommitCollateralEvent().createCollateralEvent(null);
+        MongoStore mongoStore = new MongoStore();
+        User user = User.getOrCreateUser(parties.get(0), mongoDB);
+        User marginAcct = User.getOrCreateUser(parties.get(1), mongoDB);
+        mongoStore.addEventToStore(collateralEvent, "collateral");
+        Transaction transaction = user.sendEventTransaction(marginAcct, collateralEvent, "execution");
+        mongoStore.addAlgorandTransactionToStore(MongoStore.getGlobalKey(collateralEvent), transaction, user, marginAcct, "execution");
         System.out.println(rosettaObjectMapper.writeValueAsString(collateralEvent));
     }
 
@@ -38,7 +47,7 @@ public class CommitCollateralEvent {
 
         collateralEventBuilder.setAction(ActionEnum.NEW);
         //Add any new parties to the database, and commit the event to their own private databases
-        List<Party> parties = Lists.newArrayList();
+
         parties.add(Party.builder()
                 .addPartyId(FieldWithMetaString.builder()
                         .setValue("Client1_ID#0_NH90YY6QYVYHM")
