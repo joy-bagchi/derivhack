@@ -50,7 +50,10 @@ public class PortfolioReport
         System.out.println("execution portfolio: " + executionPortfolio.toString());
         System.out.println("settlement portfolio: " + settlementPortfolio.toString());
 
-        createPortfolioReport(executionPortfolio, reportFile);
+        String fileName = String.valueOf(Paths.get(reportFile).getFileName());
+        createPortfolioReport(executionPortfolio, fileName);
+//        createPortfolioReport(executionPortfolio, fileName + "_execution");
+//        createPortfolioReport(settlementPortfolio, fileName + "_settlement");
     }
 
     public static Portfolio getPortfolio(String clientName, LocalDate portfolioDate)
@@ -91,13 +94,15 @@ public class PortfolioReport
                     if (client.name.equals(clientName))
                     {
                         Product product = trade.getExecution().getProduct();
+                        BigDecimal newAmount = trade.getExecution().getQuantity().getAmount();
                         if(quantitiesByProduct.containsKey(product))
                         {
-                            quantitiesByProduct.put(product, quantitiesByProduct.get(product).add(trade.getExecution().getQuantity().getAmount()));
+                            quantitiesByProduct.put(product, quantitiesByProduct.get(product).add(newAmount));
                         } else
                         {
-                            quantitiesByProduct.put(product, trade.getExecution().getQuantity().getAmount());
+                            quantitiesByProduct.put(product, newAmount);
                         }
+                        System.out.println("added quantity: " + newAmount);
                     }
                 }
             }
@@ -133,12 +138,10 @@ public class PortfolioReport
         return portfolio;
     }
 
-    public static void createPortfolioReport(Portfolio portfolio, String reportName) throws IOException
+    public static void createPortfolioReport(Portfolio portfolio, String fileName) throws IOException
     {
         new File("./Files/Reports").mkdir();
-        String fileName = String.valueOf(Paths.get(reportName).getFileName());
         try(
-
             BufferedWriter writer = Files.newBufferedWriter(Paths.get("./Files/Reports/" + fileName + ".csv"));
             CSVPrinter csvPrinter = new CSVPrinter(writer, CSVFormat.DEFAULT
                     .withHeader("Client", "Product", "Quantity"));
