@@ -8,6 +8,8 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.regnosys.rosetta.common.serialisation.RosettaObjectMapper;
 import org.bson.Document;
+import org.isda.cdm.Affirmation;
+import org.isda.cdm.Confirmation;
 import org.isda.cdm.Event;
 
 import java.io.IOException;
@@ -45,15 +47,35 @@ public class MongoStore extends CDMLocalStore
         mongoClient.dropDatabase(MongoStore.DB_NAME);
     }
 
-    @Override
-    public void addEventToStore(Event event) throws JsonProcessingException
+    protected void addToEventStore(String globalKey, String stage, String json)
     {
-        String globalKey = MongoStore.getGlobalKey(event);
         Document document = new Document(
                 "globalKey", globalKey)
-                .append("eventJson", this.rosettaMapper.writeValueAsString(event));
+                .append("stage", stage)
+                .append("eventJson", json);
         this.cdmGlobalKeyToEventCollection.insertOne(document);
-        System.out.println("added event to mongo: globalKey=" + globalKey);
+        System.out.println("added event to mongo: globalKey=" + globalKey + ", stage=" + stage);
+    }
+
+    @Override
+    public void addEventToStore(Event event, String stage) throws JsonProcessingException
+    {
+        String globalKey = MongoStore.getGlobalKey(event);
+        this.addToEventStore(globalKey, stage, this.rosettaMapper.writeValueAsString(event));
+    }
+
+    @Override
+    public void addAffirmationToStore(Affirmation affirmation) throws JsonProcessingException
+    {
+        String globalKey = affirmation.getIdentifier().get(0).getMeta().getGlobalKey();
+        this.addToEventStore(globalKey, "affirmation", this.rosettaMapper.writeValueAsString(affirmation));
+    }
+
+    @Override
+    public void addConfirmationToStore(Confirmation confirmation) throws JsonProcessingException
+    {
+        String globalKey = confirmation.getIdentifier().get(0).getMeta().getGlobalKey();
+        this.addToEventStore(globalKey, "confirmation", this.rosettaMapper.writeValueAsString(confirmation));
     }
 
     @Override

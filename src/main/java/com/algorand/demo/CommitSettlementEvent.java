@@ -41,6 +41,7 @@ public class CommitSettlementEvent {
                     .readValue(fileContents, Event.class);
             CommitSettlementEvent cse = new CommitSettlementEvent();
             Event settlementEvent = cse.createSettlement(allocationEvent);
+            new MongoStore().addEventToStore(settlementEvent, "settlement");
             System.out.println(cse.rosettaObjectMapper.writeValueAsString(settlementEvent));
         }
         catch(IOException ex)
