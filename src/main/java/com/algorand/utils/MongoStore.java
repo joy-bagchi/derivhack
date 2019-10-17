@@ -13,10 +13,12 @@ import org.isda.cdm.Confirmation;
 import org.isda.cdm.Event;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 import static com.mongodb.client.model.Filters.eq;
+import static com.mongodb.client.model.Filters.or;
 
 public class MongoStore extends CDMLocalStore
 {
@@ -99,6 +101,7 @@ public class MongoStore extends CDMLocalStore
         }
 
         String eventJson = document.getString("eventJson");
+        System.out.println("got JSON from mongo global key \"" + globalKey + "\": " + eventJson);
         Event event = null;
         try
         {
@@ -108,6 +111,7 @@ public class MongoStore extends CDMLocalStore
         {
             e.printStackTrace();
         }
+        System.out.println("got event from mongo JSON from global key \"" + globalKey + "\": " + event.toString());
         return event;
     }
 
@@ -147,4 +151,26 @@ public class MongoStore extends CDMLocalStore
         this.addAlgorandTransactionsToStore(globalKey, transactions, Collections.nCopies(receivers.size(), sender), receivers, stage);
     }
 
+    protected List<String> getGlobalKeysByParty(String partyName)
+    {
+        List<String> globalKeys = new ArrayList<>();
+        for(Document curDocument : this.cdmGlobalKeyToAlgorandTransactionCollection.find(
+                or(eq("senderName", partyName), eq("receiverName", partyName))))
+        {
+            globalKeys.add(curDocument.getString("cdmGlobalKey"));
+        }
+        return globalKeys;
+    }
+
+    @Override
+    public List<Event> getEventsByParty(String partyName)
+    {
+        List<String> globalKeys = this.getGlobalKeysByParty(partyName);
+        ArrayList<Event> events = new ArrayList<>();
+        for(String globalKey: globalKeys)
+        {
+            events.add(this.getEventFromStore(globalKey));
+        }
+        return events;
+    }
 }
