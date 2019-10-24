@@ -44,7 +44,7 @@ public class CommitSettlementEvent {
             Event settlementEvent = cse.createSettlement(allocationEvent);
             ValidatedTranferPrimitive transfer = new ValidatedTranferPrimitive(settlementEvent, allocationEvent)
                     .validateLineage()
-                    .validateEconomics()
+                    //.validateEconomics()
                     .validateSettlementDate();
 
             transfer.getAllTransfers();
@@ -57,6 +57,9 @@ public class CommitSettlementEvent {
                     .validateParties()
                     .validateCDMDataRules();
 
+            List<Party> parties = Lists.newArrayList();
+            parties.add(validatedEvent.getCounterParty());
+            parties.addAll(validatedEvent.getSubAccounts());
             //Get the allocated trades
             List<Trade> allocatedTrades  = validatedEvent.getAllocatedTrades();
 
@@ -64,30 +67,18 @@ public class CommitSettlementEvent {
             List<Execution> executions = allocatedTrades.stream()
                     .map(trade -> trade.getExecution())
                     .collect(Collectors.toList());
-            for(Execution execution: executions) {
-                //Get the executing party reference
-                String executingPartyReference = execution.getPartyRole()
-                        .stream()
-                        .filter(r -> r.getRole() == PartyRoleEnum.EXECUTING_ENTITY)
-                        .map(r -> r.getPartyReference().getGlobalReference())
-                        .collect(MoreCollectors.onlyElement());
 
-                // Get the client
-                String clientReference = execution.getPartyRole()
-                        .stream()
-                        .filter(r -> r.getRole() == PartyRoleEnum.CLIENT)
-                        .map(r -> r.getPartyReference().getGlobalReference())
-                        .collect(MoreCollectors.onlyElement());
+            User executingBroker = User.getOrCreateUser(validatedEvent.getExecutingEntity(), mongoDB);
+            for(Party party: parties) {
 
-                // Get the executing user
-                User executingUser = User.getUser(executingPartyReference);
+                User otherUser = User.getOrCreateUser(party, mongoDB);
                 // Get the client
-                User clientUser = User.getUser(clientReference);
+
                 //Send client the event globalkey  as a  blockchain transaction
-                Transaction transaction = executingUser.sendEventTransaction(clientUser, settlementEvent, "settlement");
-                mongoStore.addAlgorandTransactionToStore(MongoStore.getGlobalKey(settlementEvent), transaction, executingUser, clientUser, "settlement");
+                Transaction transaction = executingBroker.sendEventTransaction(otherUser, settlementEvent, "settlement");
+                mongoStore.addAlgorandTransactionToStore(MongoStore.getGlobalKey(settlementEvent), transaction, executingBroker, otherUser, "settlement");
             }
-            System.out.println(cse.rosettaObjectMapper.writeValueAsString(settlementEvent));
+            //System.out.println(cse.rosettaObjectMapper.writeValueAsString(settlementEvent));
         }
         catch(IOException  ex)
         {
